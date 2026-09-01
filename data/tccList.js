@@ -1,7 +1,7 @@
 // Official NPA list of operational Thuthuzela Care Centres in South Africa,
 // dated 30 March 2026. Source: npa.gov.za
 // Used by the "Bulk import TCCs" button on /admin/shelters — each entry gets
-// geocoded in the browser and inserted into the shelters table with
+// geocoded in the browser and inserted into the shelters table wit
 // facility_type: 'tcc'.
 
 export const TCC_LIST = [
