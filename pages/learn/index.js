@@ -5,7 +5,7 @@ import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 import Layout from '../../components/Layout';
 import MythFactGame from '../../components/MythFactGame';
 import { supabase } from '../../lib/supabaseClient';
-import { COURSES } from '../../lib/courseData';
+import { COURSES, UNDER18_COURSES } from '../../lib/courseData';
 import { ADVANCED_COURSES } from '../../lib/allyCourseData';
 
 const COURSE_ICONS = {
@@ -13,6 +13,7 @@ const COURSE_ICONS = {
   'healthy-relationships': '💛',
   consent: '🤝',
   'online-safety': '🔒',
+  'culture-and-gender-norms': '🌍',
 };
 
 function greetingForNow() {
@@ -84,6 +85,18 @@ export default function LearnPage() {
       overviewHref: `/learn/${c.id}`,
       advanced: false,
     })),
+    ...(isGirl
+      ? UNDER18_COURSES.map((c) => ({
+          id: c.id,
+          title: c.title,
+          tagline: c.tagline,
+          icon: COURSE_ICONS[c.id] || '📘',
+          total: c.lessons.length,
+          firstLessonId: c.lessons[0]?.id,
+          overviewHref: `/learn/${c.id}`,
+          advanced: false,
+        }))
+      : []),
     ...(!isGirl
       ? ADVANCED_COURSES.map((c) => ({
           id: c.id,
