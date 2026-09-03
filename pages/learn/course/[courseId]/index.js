@@ -147,7 +147,9 @@ export default function CourseOverviewPage() {
             <div className="module-item final">
               <p className="module-num">Final</p>
               <p className="module-title">Final Assessment</p>
-              <p className="module-count">5 questions · Certificate on passing</p>
+              <p className="module-count">
+                {course.finalAssessment.questions.length} questions · Certificate on passing
+              </p>
             </div>
           </div>
         </div>
