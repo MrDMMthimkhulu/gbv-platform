@@ -25,7 +25,8 @@ function getSupabase() {
 }
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-const EMBED_MODEL = 'gemini-embedding-001';
+const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
+const EMBED_MODEL = 'text-embedding-3-small';
 const CHAT_MODEL = 'gemini-3.5-flash';
 
 const SYSTEM_PROMPT = `You are Jennet, GBV Support Specialist, the AI agent built for SafeHaven, a South African platform supporting women and girls experiencing gender-based violence (GBV).
@@ -50,30 +51,30 @@ Hard rules:
 - Keep responses concise (3-5 sentences typically), this is a chat interface, not an essay.
 - Never claim certainty about someone's danger level. You can express concern and point to real help; you cannot assess risk clinically.`;
 
-// Embed the user's question using Gemini's embedding endpoint.
-// outputDimensionality is set to 768 to match the vector(768) column in
-// Supabase (gemini-embedding-001 defaults to 3072-dimension vectors).
+// Embed the user's question using OpenAI, so it lands in the same
+// embedding space as the document chunks (embedded via OpenAI in the
+// n8n ingestion workflow). Jennet's chat replies still come from
+// Gemini below, this only changes how the search step works.
 async function embedQuery(text) {
-  const res = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/${EMBED_MODEL}:embedContent?key=${GEMINI_API_KEY}`,
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: `models/${EMBED_MODEL}`,
-        content: { parts: [{ text }] },
-        outputDimensionality: 768,
-      }),
-    }
-  );
+  const res = await fetch('https://api.openai.com/v1/embeddings', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${OPENAI_API_KEY}`,
+    },
+    body: JSON.stringify({
+      model: EMBED_MODEL,
+      input: text,
+    }),
+  });
 
   if (!res.ok) {
-    console.error('Gemini embedding error:', await res.text());
+    console.error('OpenAI embedding error:', await res.text());
     return null;
   }
 
   const data = await res.json();
-  return data.embedding?.values || null;
+  return data.data?.[0]?.embedding || null;
 }
 
 // Retrieve the most relevant chunks from Supabase pgvector
