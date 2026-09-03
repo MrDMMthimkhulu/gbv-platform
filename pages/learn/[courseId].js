@@ -6,7 +6,7 @@ import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 import Layout from '../../components/Layout';
 import LessonAudio from '../../components/LessonAudio';
 import { supabase } from '../../lib/supabaseClient';
-import { COURSES } from '../../lib/courseData';
+import { COURSES, UNDER18_COURSES } from '../../lib/courseData';
 
 export default function CoursePage() {
   const router = useRouter();
@@ -17,7 +17,7 @@ export default function CoursePage() {
   const [saving, setSaving] = useState(false);
   const [goalsOpen, setGoalsOpen] = useState(true);
 
-  const course = COURSES.find((c) => c.id === courseId);
+  const course = COURSES.find((c) => c.id === courseId) || UNDER18_COURSES.find((c) => c.id === courseId);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
@@ -384,7 +384,7 @@ export default function CoursePage() {
 
 export async function getStaticPaths() {
   return {
-    paths: COURSES.map((c) => ({ params: { courseId: c.id } })),
+    paths: [...COURSES, ...UNDER18_COURSES].map((c) => ({ params: { courseId: c.id } })),
     fallback: false,
   };
 }
