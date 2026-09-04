@@ -14,6 +14,8 @@ const COURSE_ICONS = {
   consent: '🤝',
   'online-safety': '🔒',
   'culture-and-gender-norms': '🌍',
+  'understanding-gbv-young-people': '🛡️',
+  'healthy-adolescent-relationships': '💌',
 };
 
 function greetingForNow() {
