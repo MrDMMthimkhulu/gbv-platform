@@ -24,10 +24,11 @@ function getSupabase() {
   return supabase;
 }
 
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+// Everything runs on OpenAI now, embeddings and chat replies both, one
+// provider, one key, one place for auth to break instead of two.
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 const EMBED_MODEL = 'text-embedding-3-small';
-const CHAT_MODEL = 'gemini-3.5-flash';
+const CHAT_MODEL = 'gpt-5-mini';
 
 const SYSTEM_PROMPT = `You are Jennet, GBV Support Specialist, the AI agent built for SafeHaven, a South African platform supporting women and girls experiencing gender-based violence (GBV).
 
@@ -51,10 +52,8 @@ Hard rules:
 - Keep responses concise (3-5 sentences typically), this is a chat interface, not an essay.
 - Never claim certainty about someone's danger level. You can express concern and point to real help; you cannot assess risk clinically.`;
 
-// Embed the user's question using OpenAI, so it lands in the same
-// embedding space as the document chunks (embedded via OpenAI in the
-// n8n ingestion workflow). Jennet's chat replies still come from
-// Gemini below, this only changes how the search step works.
+// Embed the user's question, same OpenAI model used during ingestion in
+// the n8n workflow, so query and document vectors live in the same space.
 async function embedQuery(text) {
   const res = await fetch('https://api.openai.com/v1/embeddings', {
     method: 'POST',
@@ -106,21 +105,22 @@ function formatContext(chunks) {
     .join('\n\n');
 }
 
-// Convert your existing {role, content} message format to Gemini's format
-function toGeminiContents(messages, contextBlock) {
-  const contents = messages.map((m) => ({
-    role: m.role === 'assistant' ? 'model' : 'user',
-    parts: [{ text: m.content }],
+// Convert your existing {role, content} message format to OpenAI's chat
+// format, with the system prompt as its own leading message and the
+// retrieved context injected ahead of the latest user turn.
+function toOpenAIMessages(messages, contextBlock) {
+  const converted = messages.map((m) => ({
+    role: m.role === 'assistant' ? 'assistant' : 'user',
+    content: m.content,
   }));
 
-  // Inject retrieved context ahead of the latest user turn
-  const lastIndex = contents.length - 1;
-  if (lastIndex >= 0 && contents[lastIndex].role === 'user') {
-    contents[lastIndex].parts[0].text =
-      `Reference material (South African GBV law and resources):\n${contextBlock}\n\nUser question: ${contents[lastIndex].parts[0].text}`;
+  const lastIndex = converted.length - 1;
+  if (lastIndex >= 0 && converted[lastIndex].role === 'user') {
+    converted[lastIndex].content =
+      `Reference material (South African GBV law and resources):\n${contextBlock}\n\nUser question: ${converted[lastIndex].content}`;
   }
 
-  return contents;
+  return [{ role: 'system', content: SYSTEM_PROMPT }, ...converted];
 }
 
 export default async function handler(req, res) {
@@ -140,31 +140,29 @@ export default async function handler(req, res) {
     const chunks = await retrieveContext(queryEmbedding);
     const contextBlock = formatContext(chunks);
 
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${CHAT_MODEL}:generateContent?key=${GEMINI_API_KEY}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          system_instruction: { parts: [{ text: SYSTEM_PROMPT }] },
-          contents: toGeminiContents(messages, contextBlock),
-          generationConfig: {
-            maxOutputTokens: 400,
-            temperature: 0.6,
-          },
-        }),
-      }
-    );
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${OPENAI_API_KEY}`,
+      },
+      body: JSON.stringify({
+        model: CHAT_MODEL,
+        messages: toOpenAIMessages(messages, contextBlock),
+        max_completion_tokens: 500,
+        temperature: 0.6,
+      }),
+    });
 
     if (!response.ok) {
       const errText = await response.text();
-      console.error('Gemini API error:', errText);
+      console.error('OpenAI chat error:', errText);
       return res.status(500).json({ error: 'Assistant is unavailable right now' });
     }
 
     const data = await response.json();
     const reply =
-      data.candidates?.[0]?.content?.parts?.[0]?.text ||
+      data.choices?.[0]?.message?.content ||
       "I'm here, but I didn't quite catch that, could you try again?";
 
     return res.status(200).json({
