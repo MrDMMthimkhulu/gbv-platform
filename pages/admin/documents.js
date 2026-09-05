@@ -4,12 +4,19 @@ import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 import Layout from '../../components/Layout';
 import { supabase } from '../../lib/supabaseClient';
 
+const AUDIENCE_LABELS = {
+  all: 'Everyone',
+  under18: 'Under 18',
+  '18plus': '18+',
+};
+
 const EMPTY = {
   id: null,
   title: '',
   description: '',
   author: '',
   doc_type: 'ebook',
+  audience: 'all',
   topics: '',
   estimated_minutes: '',
   cover_image_url: '',
@@ -52,6 +59,7 @@ export default function AdminDocumentsPage() {
       description: form.description || null,
       author: form.author || null,
       doc_type: form.doc_type,
+      audience: form.audience || 'all',
       topics: form.topics
         ? form.topics.split(',').map((t) => t.trim().toLowerCase()).filter(Boolean)
         : null,
@@ -83,6 +91,7 @@ export default function AdminDocumentsPage() {
   const edit = (d) => {
     setForm({
       ...d,
+      audience: d.audience || 'all',
       topics: (d.topics || []).join(', '),
       estimated_minutes: d.estimated_minutes || '',
     });
@@ -198,7 +207,23 @@ export default function AdminDocumentsPage() {
                 onChange={(e) => setForm({ ...form, estimated_minutes: e.target.value })}
               />
             </label>
+            <label>
+              Audience
+              <select
+                value={form.audience}
+                onChange={(e) => setForm({ ...form, audience: e.target.value })}
+              >
+                <option value="all">Everyone</option>
+                <option value="under18">Under 18</option>
+                <option value="18plus">18+</option>
+              </select>
+            </label>
           </div>
+          <p className="audience-hint">
+            Controls which section of the Library this shows up in. &quot;Everyone&quot;
+            appears in both the Under 18 and 18+ sections; the other two options
+            only appear in their matching section.
+          </p>
 
           <label className="full">
             Description
@@ -270,6 +295,8 @@ export default function AdminDocumentsPage() {
                 <p className="list-name">{d.title}</p>
                 <p className="list-sub">
                   {d.doc_type === 'ebook' ? 'Ebook' : 'Quick guide'}
+                  {' · '}
+                  {AUDIENCE_LABELS[d.audience] || AUDIENCE_LABELS.all}
                   {d.topics?.length ? ` · ${d.topics.join(', ')}` : ''}
                 </p>
               </div>
@@ -333,6 +360,12 @@ export default function AdminDocumentsPage() {
           grid-template-columns: 1fr 1fr;
           gap: 14px;
           margin-bottom: 14px;
+        }
+        .audience-hint {
+          font-size: 0.78rem;
+          color: var(--muted);
+          margin: -6px 0 14px;
+          line-height: 1.5;
         }
         label {
           display: flex;
