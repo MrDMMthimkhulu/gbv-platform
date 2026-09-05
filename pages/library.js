@@ -9,6 +9,143 @@ const TYPE_LABELS = {
   ebook: 'Ebook',
 };
 
+function DocSection({ title, docs }) {
+  if (docs.length === 0) return null;
+  return (
+    <div className="doc-section">
+      <h2 className="section-title">{title}</h2>
+      <div className="doc-grid">
+        {docs.map((d) => (
+          <a href={d.file_url} className="doc-card-link" key={d.id} target="_blank" rel="noreferrer">
+            <div className="doc-card">
+              <div className="doc-cover">
+                {d.cover_image_url ? (
+                  <img src={d.cover_image_url} alt="" />
+                ) : (
+                  <span>{d.doc_type === 'ebook' ? '📕' : '📄'}</span>
+                )}
+              </div>
+              <div className="doc-body">
+                <span className="doc-type-tag">{TYPE_LABELS[d.doc_type] || d.doc_type}</span>
+                <p className="doc-title">{d.title}</p>
+                {d.author && <p className="doc-author">by {d.author}</p>}
+                {d.description && <p className="doc-desc">{d.description}</p>}
+                <div className="doc-meta">
+                  {d.estimated_minutes && <span>{d.estimated_minutes} min read</span>}
+                  {(d.topics || []).slice(0, 3).map((t) => (
+                    <span className="doc-topic" key={t}>
+                      {t}
+                    </span>
+                  ))}
+                </div>
+              </div>
+              <span className="doc-download">↓</span>
+            </div>
+          </a>
+        ))}
+      </div>
+      <style jsx>{`
+        .doc-section {
+          margin-bottom: 36px;
+        }
+        .section-title {
+          font-size: 1.1rem;
+          font-weight: 800;
+          color: var(--ink);
+          margin-bottom: 14px;
+          padding-bottom: 8px;
+          border-bottom: 1px solid var(--sand);
+        }
+        .doc-grid {
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+        }
+        :global(.doc-card-link) {
+          text-decoration: none;
+          display: block;
+        }
+        .doc-card {
+          display: flex;
+          align-items: center;
+          gap: 16px;
+          background: white;
+          border: 1px solid var(--sand);
+          border-radius: 14px;
+          padding: 18px 20px;
+          transition: border-color 0.15s ease, box-shadow 0.15s ease;
+        }
+        :global(.doc-card-link:hover) .doc-card {
+          border-color: var(--rose);
+          box-shadow: 0 6px 20px rgba(0, 0, 0, 0.06);
+        }
+        .doc-cover {
+          width: 100px;
+          height: 100px;
+          border-radius: 10px;
+          background: var(--warm);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 2.2rem;
+          flex-shrink: 0;
+          overflow: hidden;
+        }
+        .doc-cover img {
+          width: 100%;
+          height: 100%;
+          object-fit: contain;
+        }
+        .doc-body {
+          flex: 1;
+        }
+        .doc-type-tag {
+          font-size: 0.68rem;
+          font-weight: 800;
+          text-transform: uppercase;
+          letter-spacing: 0.04em;
+          color: var(--rose-deep);
+        }
+        .doc-title {
+          font-size: 0.98rem;
+          font-weight: 800;
+          color: var(--ink);
+          margin: 4px 0 2px;
+        }
+        .doc-author {
+          font-size: 0.78rem;
+          color: var(--muted);
+          margin-bottom: 6px;
+        }
+        .doc-desc {
+          font-size: 0.85rem;
+          color: var(--muted);
+          line-height: 1.5;
+          margin-bottom: 10px;
+        }
+        .doc-meta {
+          display: flex;
+          gap: 8px;
+          flex-wrap: wrap;
+          font-size: 0.72rem;
+          color: var(--muted);
+        }
+        .doc-topic {
+          background: var(--teal-light);
+          padding: 2px 8px;
+          border-radius: 999px;
+        }
+        .doc-download {
+          font-size: 1.2rem;
+          font-weight: 800;
+          color: var(--rose-deep);
+          flex-shrink: 0;
+        }
+      `}</style>
+    </div>
+  );
+}
+
 export default function LibraryPage() {
   const [documents, setDocuments] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -46,6 +183,19 @@ export default function LibraryPage() {
       return true;
     });
   }, [documents, search, activeTopic, activeType]);
+
+  // Each document is tagged all / under18 / 18plus in the admin panel.
+  // "all" belongs in both sections since it's written for any reader;
+  // the other two only show up in their matching section, so an under-18
+  // reader never lands on 18+ material (or the reverse) while browsing.
+  const under18Docs = useMemo(
+    () => filtered.filter((d) => (d.audience || 'all') !== '18plus'),
+    [filtered]
+  );
+  const over18Docs = useMemo(
+    () => filtered.filter((d) => (d.audience || 'all') !== 'under18'),
+    [filtered]
+  );
 
   return (
     <Layout>
@@ -119,36 +269,12 @@ export default function LibraryPage() {
           </p>
         )}
 
-        <div className="doc-grid">
-          {filtered.map((d) => (
-            <a href={d.file_url} className="doc-card-link" key={d.id} target="_blank" rel="noreferrer">
-              <div className="doc-card">
-                <div className="doc-cover">
-                  {d.cover_image_url ? (
-                    <img src={d.cover_image_url} alt="" />
-                  ) : (
-                    <span>{d.doc_type === 'ebook' ? '📕' : '📄'}</span>
-                  )}
-                </div>
-                <div className="doc-body">
-                  <span className="doc-type-tag">{TYPE_LABELS[d.doc_type] || d.doc_type}</span>
-                  <p className="doc-title">{d.title}</p>
-                  {d.author && <p className="doc-author">by {d.author}</p>}
-                  {d.description && <p className="doc-desc">{d.description}</p>}
-                  <div className="doc-meta">
-                    {d.estimated_minutes && <span>{d.estimated_minutes} min read</span>}
-                    {(d.topics || []).slice(0, 3).map((t) => (
-                      <span className="doc-topic" key={t}>
-                        {t}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-                <span className="doc-download">↓</span>
-              </div>
-            </a>
-          ))}
-        </div>
+        {!loading && filtered.length > 0 && (
+          <>
+            <DocSection title="Under 18" docs={under18Docs} />
+            <DocSection title="18 and over" docs={over18Docs} />
+          </>
+        )}
       </section>
 
       <style jsx>{`
@@ -245,91 +371,6 @@ export default function LibraryPage() {
           padding: 16px 18px;
         }
 
-        .doc-grid {
-          display: flex;
-          flex-direction: column;
-          gap: 12px;
-        }
-        :global(.doc-card-link) {
-          text-decoration: none;
-          display: block;
-        }
-        .doc-card {
-          display: flex;
-          align-items: center;
-          gap: 16px;
-          background: white;
-          border: 1px solid var(--sand);
-          border-radius: 14px;
-          padding: 18px 20px;
-          transition: border-color 0.15s ease, box-shadow 0.15s ease;
-        }
-        :global(.doc-card-link:hover) .doc-card {
-          border-color: var(--rose);
-          box-shadow: 0 6px 20px rgba(0, 0, 0, 0.06);
-        }
-        .doc-cover {
-          width: 100px;
-          height: 100px;
-          border-radius: 10px;
-          background: var(--warm);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-size: 2.2rem;
-          flex-shrink: 0;
-          overflow: hidden;
-        }
-        .doc-cover img {
-          width: 100%;
-          height: 100%;
-          object-fit: contain;
-        }
-        .doc-body {
-          flex: 1;
-        }
-        .doc-type-tag {
-          font-size: 0.68rem;
-          font-weight: 800;
-          text-transform: uppercase;
-          letter-spacing: 0.04em;
-          color: var(--rose-deep);
-        }
-        .doc-title {
-          font-size: 0.98rem;
-          font-weight: 800;
-          color: var(--ink);
-          margin: 4px 0 2px;
-        }
-        .doc-author {
-          font-size: 0.78rem;
-          color: var(--muted);
-          margin-bottom: 6px;
-        }
-        .doc-desc {
-          font-size: 0.85rem;
-          color: var(--muted);
-          line-height: 1.5;
-          margin-bottom: 10px;
-        }
-        .doc-meta {
-          display: flex;
-          gap: 8px;
-          flex-wrap: wrap;
-          font-size: 0.72rem;
-          color: var(--muted);
-        }
-        .doc-topic {
-          background: var(--teal-light);
-          padding: 2px 8px;
-          border-radius: 999px;
-        }
-        .doc-download {
-          font-size: 1.2rem;
-          font-weight: 800;
-          color: var(--rose-deep);
-          flex-shrink: 0;
-        }
       `}</style>
     </Layout>
   );
