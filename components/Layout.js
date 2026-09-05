@@ -113,7 +113,16 @@ export default function Layout({ children }) {
               onChange={changeLanguage}
             >
               <option value="en">English</option>
+              <option value="af">Afrikaans</option>
+              <option value="nr">isiNdebele</option>
+              <option value="xh">isiXhosa</option>
               <option value="zu">isiZulu</option>
+              <option value="nso">Sepedi</option>
+              <option value="st">Sesotho</option>
+              <option value="tn">Setswana</option>
+              <option value="ss">siSwati</option>
+              <option value="ve">Tshivenda</option>
+              <option value="ts">Xitsonga</option>
             </select>
           </li>
         </ul>
