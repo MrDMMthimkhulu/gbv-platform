@@ -150,7 +150,6 @@ export default async function handler(req, res) {
         model: CHAT_MODEL,
         messages: toOpenAIMessages(messages, contextBlock),
         max_completion_tokens: 500,
-        temperature: 0.6,
       }),
     });
 
