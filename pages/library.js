@@ -268,7 +268,7 @@ export default function LibraryPage() {
         .doc-cover img {
           width: 100%;
           height: 100%;
-          object-fit: cover;
+          object-fit: contain;
         }
         .doc-body {
           flex: 1;
