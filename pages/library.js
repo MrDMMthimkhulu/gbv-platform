@@ -241,7 +241,7 @@ export default function LibraryPage() {
         }
         .doc-card {
           display: flex;
-          align-items: flex-start;
+          align-items: center;
           gap: 16px;
           background: white;
           border: 1px solid var(--sand);
@@ -254,14 +254,14 @@ export default function LibraryPage() {
           box-shadow: 0 6px 20px rgba(0, 0, 0, 0.06);
         }
         .doc-cover {
-          width: 84px;
-          height: 84px;
+          width: 100px;
+          height: 100px;
           border-radius: 10px;
           background: var(--warm);
           display: flex;
           align-items: center;
           justify-content: center;
-          font-size: 2rem;
+          font-size: 2.2rem;
           flex-shrink: 0;
           overflow: hidden;
         }
