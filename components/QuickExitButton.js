@@ -1,11 +1,46 @@
+import { useEffect } from 'react';
+
+// Where "quick exit" sends someone. A weather site reads as an ordinary
+// thing to have open and doesn't hint at why they navigated away, unlike
+// a search engine which can look like a hurried cover story.
+const EXIT_URL = 'https://weather.com';
+
+// Browsers give JavaScript no API to delete existing history entries or
+// address-bar autocomplete — that's a browser-level privacy control, only
+// changeable by the person themselves (their browser's "clear history"
+// screen), never by a page. What a page CAN do is stop new back-button
+// presses from ever landing on this site again: push several extra history
+// entries that all point at the exit destination before we leave, so the
+// back button just replays the same harmless page instead of returning
+// here. Pairs well with reminding survivors, outside the app, to also
+// clear their browser history/autocomplete by hand if a device is shared.
+const HISTORY_OVERWRITE_STEPS = 6;
+
+function performExit() {
+  try {
+    for (let i = 0; i < HISTORY_OVERWRITE_STEPS; i++) {
+      window.history.pushState(null, '', EXIT_URL);
+    }
+  } catch {
+    // If pushState is blocked for any reason, fall back to just navigating.
+  }
+  window.location.replace(EXIT_URL);
+}
+
 export default function QuickExitButton({ label = 'Quick Exit' }) {
-  const handleExit = () => {
-    window.location.replace('https://www.google.com');
-  };
+  // Esc is bound site-wide so leaving doesn't depend on finding and
+  // accurately clicking a small fixed button while under stress.
+  useEffect(() => {
+    const onKeyDown = (e) => {
+      if (e.key === 'Escape') performExit();
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, []);
 
   return (
     <>
-      <button onClick={handleExit} aria-label="Quick exit - leave this site immediately">
+      <button onClick={performExit} aria-label="Quick exit - leave this site immediately">
         {label}
       </button>
       <style jsx>{`
