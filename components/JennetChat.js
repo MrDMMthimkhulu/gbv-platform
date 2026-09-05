@@ -18,7 +18,34 @@ export default function JennetChat({ compact = false }) {
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(true);
+  const [location, setLocation] = useState(null);
+  const [locating, setLocating] = useState(false);
+  const [locationError, setLocationError] = useState('');
   const windowRef = useRef(null);
+
+  const shareLocation = () => {
+    if (!navigator.geolocation) {
+      setLocationError('Location is not available on this device.');
+      return;
+    }
+    setLocating(true);
+    setLocationError('');
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+        setLocating(false);
+        setMessages((prev) => [
+          ...prev,
+          { role: 'assistant', content: '📍 Got it, I can see your location now, ask me about shelters or facilities near you whenever you like.' },
+        ]);
+      },
+      () => {
+        setLocationError('Could not get your location. You can still ask, just without distances.');
+        setLocating(false);
+      },
+      { timeout: 10000 }
+    );
+  };
 
   useEffect(() => {
     const el = windowRef.current;
@@ -43,6 +70,7 @@ export default function JennetChat({ compact = false }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           messages: nextMessages.map((m) => ({ role: m.role, content: m.content })),
+          location: location || undefined,
         }),
       });
       const data = await res.json();
@@ -116,6 +144,15 @@ export default function JennetChat({ compact = false }) {
               {s}
             </button>
           ))}
+        </div>
+      )}
+
+      {!location && (
+        <div className="location-row">
+          <button className="location-btn" onClick={shareLocation} disabled={locating}>
+            {locating ? 'Locating…' : '📍 Share my location for nearby shelters'}
+          </button>
+          {locationError && <p className="location-error">{locationError}</p>}
         </div>
       )}
 
@@ -285,6 +322,31 @@ export default function JennetChat({ compact = false }) {
         .suggestion-chip:hover {
           border-color: var(--rose);
           color: var(--rose);
+        }
+
+        .location-row {
+          padding: 0 24px 12px;
+          flex-shrink: 0;
+        }
+        .location-btn {
+          width: 100%;
+          padding: 9px 14px;
+          border-radius: 10px;
+          background: var(--warm);
+          border: 1px dashed var(--sand);
+          font-size: 0.78rem;
+          font-weight: 600;
+          color: var(--rose-deep);
+          cursor: pointer;
+        }
+        .location-btn:disabled {
+          opacity: 0.6;
+          cursor: not-allowed;
+        }
+        .location-error {
+          font-size: 0.72rem;
+          color: var(--muted);
+          margin-top: 6px;
         }
 
         .chat-input-row {
