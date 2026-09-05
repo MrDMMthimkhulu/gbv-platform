@@ -15,6 +15,7 @@ export default function LibraryPage() {
   const [search, setSearch] = useState('');
   const [activeTopic, setActiveTopic] = useState('All');
   const [activeType, setActiveType] = useState('All');
+  const [showAllTopics, setShowAllTopics] = useState(false);
 
   useEffect(() => {
     supabase
@@ -89,7 +90,7 @@ export default function LibraryPage() {
           {allTopics.length > 1 && (
             <div className="filter-group">
               <span className="filter-label">Topic</span>
-              {allTopics.map((t) => (
+              {(showAllTopics ? allTopics : allTopics.slice(0, 8)).map((t) => (
                 <button
                   key={t}
                   className={`chip ${activeTopic === t ? 'active' : ''}`}
@@ -98,6 +99,14 @@ export default function LibraryPage() {
                   {t}
                 </button>
               ))}
+              {allTopics.length > 8 && (
+                <button
+                  className="chip chip-toggle"
+                  onClick={() => setShowAllTopics((v) => !v)}
+                >
+                  {showAllTopics ? 'Show less' : `+${allTopics.length - 8} more`}
+                </button>
+              )}
             </div>
           )}
         </div>
@@ -220,6 +229,12 @@ export default function LibraryPage() {
         .chip.active {
           background: var(--rose);
           color: white;
+        }
+        .chip-toggle {
+          background: transparent;
+          border: 1px solid var(--sand);
+          color: var(--rose-deep);
+          font-weight: 700;
         }
 
         .empty-note {
