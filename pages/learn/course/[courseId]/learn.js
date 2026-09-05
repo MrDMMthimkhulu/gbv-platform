@@ -5,6 +5,7 @@ import { useRouter } from 'next/router';
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 import Layout from '../../../../components/Layout';
 import QuizBlock from '../../../../components/QuizBlock';
+import CourseVideoIntro from '../../../../components/CourseVideoIntro';
 import { supabase } from '../../../../lib/supabaseClient';
 import { ADVANCED_COURSES } from '../../../../lib/allyCourseData';
 
@@ -149,6 +150,13 @@ export default function CoursePlayerPage() {
             <>
               <p className="module-tag">{step.moduleTitle}</p>
               <h1>{step.title}</h1>
+              
+              {stepIndex === 0 && (
+                <div className="first-lesson-video">
+                  <CourseVideoIntro courseId={courseId} showEmbed={true} />
+                </div>
+              )}
+
               {step.content.split('\n\n').map((p, i) => (
                 <p key={i} className="body-text">
                   {p}
@@ -288,6 +296,15 @@ export default function CoursePlayerPage() {
           color: var(--rose);
           margin-bottom: 10px;
         }
+
+        .first-lesson-video {
+          background: white;
+          border-radius: 12px;
+          padding: 20px;
+          margin-bottom: 30px;
+          border: 1px solid var(--sand);
+        }
+
         .body-text {
           font-size: 0.95rem;
           line-height: 1.7;
