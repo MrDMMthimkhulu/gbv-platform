@@ -24,6 +24,47 @@ function getSupabase() {
   return supabase;
 }
 
+function haversineKm(lat1, lon1, lat2, lon2) {
+  const R = 6371;
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLon = ((lon2 - lon1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos((lat1 * Math.PI) / 180) *
+      Math.cos((lat2 * Math.PI) / 180) *
+      Math.sin(dLon / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+// Same distance math as the live map (components/SheltersMap.js), kept
+// identical on purpose so "nearest" means the same thing in Jennet as it
+// does on the map itself.
+async function findNearestShelters(location, count = 3) {
+  if (!location || typeof location.lat !== 'number' || typeof location.lng !== 'number') {
+    return [];
+  }
+
+  const client = getSupabase();
+  if (!client) return [];
+
+  const { data, error } = await client
+    .from('shelters')
+    .select('name, facility_type, address, phone, latitude, longitude');
+
+  if (error) {
+    console.error('Supabase shelters lookup error:', error);
+    return [];
+  }
+
+  return (data || [])
+    .map((s) => ({
+      ...s,
+      distanceKm: haversineKm(location.lat, location.lng, s.latitude, s.longitude),
+    }))
+    .sort((a, b) => a.distanceKm - b.distanceKm)
+    .slice(0, count);
+}
+
 // Everything runs on OpenAI now, embeddings and chat replies both, one
 // provider, one key, one place for auth to break instead of two.
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
@@ -49,6 +90,7 @@ What SafeHaven actually is, so you can speak about it accurately instead of vagu
 - You, Jennet, available site-wide to talk through anything GBV-related.
 - A Quick Exit button on every page for leaving the site instantly.
 - An emergency alert feature (in a user's profile, once logged in) that can send a trusted contact your location.
+- A location-sharing option right here in this chat: if someone asks for the nearest shelter or facility and hasn't shared their location yet, tell them they can tap the location button in the chat to share it, then you'll be given their real nearest verified facilities to mention.
 - The site works in multiple languages and adapts its tone depending on whether someone identifies as under 18 or 18+.
 When someone asks what the site does or where to find something, answer from this actual knowledge, specifically and confidently, don't hedge with "I don't have access to..." when you do know the answer.
 
@@ -124,19 +166,34 @@ async function retrieveContext(queryEmbedding, matchCount = 5) {
 // material is only attached when something relevant was actually found,
 // so a casual "hi" doesn't get a reference block bolted onto it, and it's
 // framed as optional, Jennet decides whether it's worth mentioning.
-function toOpenAIMessages(messages, chunks) {
+function toOpenAIMessages(messages, chunks, nearbyShelters) {
   const converted = messages.map((m) => ({
     role: m.role === 'assistant' ? 'assistant' : 'user',
     content: m.content,
   }));
 
   const lastIndex = converted.length - 1;
-  if (lastIndex >= 0 && converted[lastIndex].role === 'user' && chunks.length > 0) {
-    const contextBlock = chunks
-      .map((c, i) => `[${i + 1}] Source: ${c.source}\n${c.content}`)
-      .join('\n\n');
-    converted[lastIndex].content =
-      `${converted[lastIndex].content}\n\n(Optional, for your awareness only: the following is potentially relevant material from SafeHaven's own resource library. Mention it naturally only if it genuinely helps answer what they just asked, otherwise ignore it entirely and just respond normally.\n${contextBlock})`;
+  if (lastIndex >= 0 && converted[lastIndex].role === 'user') {
+    let addendum = '';
+
+    if (chunks.length > 0) {
+      const contextBlock = chunks
+        .map((c, i) => `[${i + 1}] Source: ${c.source}\n${c.content}`)
+        .join('\n\n');
+      addendum += `\n\n(Optional, for your awareness only: the following is potentially relevant material from SafeHaven's own resource library. Mention it naturally only if it genuinely helps answer what they just asked, otherwise ignore it entirely and just respond normally.\n${contextBlock})`;
+    }
+
+    if (nearbyShelters.length > 0) {
+      const shelterBlock = nearbyShelters
+        .map(
+          (s, i) =>
+            `[${i + 1}] ${s.name} (${s.facility_type || 'shelter'}), about ${s.distanceKm.toFixed(1)} km away. ${s.address || ''} ${s.phone ? `Phone: ${s.phone}` : ''}`
+        )
+        .join('\n');
+      addendum += `\n\n(The user has shared their location. These are the real nearest verified facilities to them, closest first, pulled live from SafeHaven's own database, not a guess:\n${shelterBlock}\nOnly bring these up if it's relevant to what they're actually asking, e.g. if they're looking for a shelter or facility. Don't force them into an unrelated reply.)`;
+    }
+
+    converted[lastIndex].content = `${converted[lastIndex].content}${addendum}`;
   }
 
   return [{ role: 'system', content: SYSTEM_PROMPT }, ...converted];
@@ -147,7 +204,7 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { messages } = req.body;
+  const { messages, location } = req.body;
 
   if (!messages || !Array.isArray(messages)) {
     return res.status(400).json({ error: 'Missing messages array' });
@@ -157,6 +214,7 @@ export default async function handler(req, res) {
     const lastUserMessage = [...messages].reverse().find((m) => m.role === 'user');
     const queryEmbedding = lastUserMessage ? await embedQuery(lastUserMessage.content) : null;
     const chunks = await retrieveContext(queryEmbedding);
+    const nearbyShelters = await findNearestShelters(location);
 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -166,7 +224,7 @@ export default async function handler(req, res) {
       },
       body: JSON.stringify({
         model: CHAT_MODEL,
-        messages: toOpenAIMessages(messages, chunks),
+        messages: toOpenAIMessages(messages, chunks, nearbyShelters),
         max_completion_tokens: 500,
         temperature: 0.6,
       }),
