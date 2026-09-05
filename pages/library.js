@@ -254,14 +254,14 @@ export default function LibraryPage() {
           box-shadow: 0 6px 20px rgba(0, 0, 0, 0.06);
         }
         .doc-cover {
-          width: 46px;
-          height: 46px;
+          width: 84px;
+          height: 84px;
           border-radius: 10px;
           background: var(--warm);
           display: flex;
           align-items: center;
           justify-content: center;
-          font-size: 1.2rem;
+          font-size: 2rem;
           flex-shrink: 0;
           overflow: hidden;
         }
