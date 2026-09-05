@@ -5,6 +5,7 @@ import { useRouter } from 'next/router';
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 import Layout from '../../components/Layout';
 import LessonAudio from '../../components/LessonAudio';
+import CourseVideoIntro from '../../components/CourseVideoIntro';
 import { supabase } from '../../lib/supabaseClient';
 import { COURSES, UNDER18_COURSES } from '../../lib/courseData';
 
@@ -94,6 +95,12 @@ export default function CoursePage() {
             <Link href="/login">Log in</Link> to save your progress.
           </p>
         )}
+      </section>
+
+      <section className="video-section">
+        <div className="video-container">
+          <CourseVideoIntro courseId={courseId} showEmbed={false} />
+        </div>
       </section>
 
       <section className="course-layout">
@@ -213,6 +220,17 @@ export default function CoursePage() {
         .login-note :global(a) {
           color: var(--rose-deep);
           font-weight: 700;
+        }
+
+        .video-section {
+          max-width: 700px;
+          margin: 0 auto;
+          padding: 0 24px 30px;
+        }
+        .video-container {
+          background: white;
+          border-radius: 12px;
+          padding: 20px;
         }
 
         .course-layout {
