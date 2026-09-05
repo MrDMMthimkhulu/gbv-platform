@@ -33,6 +33,7 @@ export default function LearnPage() {
   const [ageGroup, setAgeGroup] = useState(null);
   const [tab, setTab] = useState('progress');
   const [quickGuides, setQuickGuides] = useState([]);
+  const [courseTypeFilter, setCourseTypeFilter] = useState('all');
 
   useEffect(() => {
     supabase
@@ -86,6 +87,9 @@ export default function LearnPage() {
       firstLessonId: c.lessons[0]?.id,
       overviewHref: `/learn/${c.id}`,
       advanced: false,
+      courseType: 'learning',
+      badge: 'LEARNING',
+      badgeColor: '#2196f3',
     })),
     ...(isGirl
       ? UNDER18_COURSES.map((c) => ({
@@ -97,6 +101,9 @@ export default function LearnPage() {
           firstLessonId: c.lessons[0]?.id,
           overviewHref: `/learn/${c.id}`,
           advanced: false,
+          courseType: 'learning',
+          badge: 'LEARNING',
+          badgeColor: '#2196f3',
         }))
       : []),
     ...(!isGirl
@@ -108,6 +115,9 @@ export default function LearnPage() {
           total: c.modules.reduce((sum, m) => sum + m.lessons.length, 0),
           overviewHref: `/learn/course/${c.id}`,
           advanced: true,
+          courseType: 'certificate',
+          badge: 'CERTIFICATE',
+          badgeColor: '#4caf50',
         }))
       : []),
   ].map((c) => {
@@ -122,9 +132,14 @@ export default function LearnPage() {
     return { ...c, done, status };
   });
 
-  const inProgressList = allCourses.filter((c) => c.status !== 'completed');
-  const completedList = allCourses.filter((c) => c.status === 'completed');
-  const certificatesList = allCourses.filter((c) => certifiedCourses.has(c.id));
+  // Apply course type filter
+  const filteredCourses = courseTypeFilter === 'all' 
+    ? allCourses 
+    : allCourses.filter((c) => c.courseType === courseTypeFilter);
+
+  const inProgressList = filteredCourses.filter((c) => c.status !== 'completed');
+  const completedList = filteredCourses.filter((c) => c.status === 'completed');
+  const certificatesList = filteredCourses.filter((c) => certifiedCourses.has(c.id));
 
   const lessonsCompleted = Object.values(progress).reduce((sum, s) => sum + s.size, 0);
   const coursesStarted = allCourses.filter((c) => c.done > 0).length;
@@ -156,6 +171,29 @@ export default function LearnPage() {
             certificates. You can still browse without an account.
           </p>
         )}
+      </section>
+
+      <section className="filter-section">
+        <div className="filter-tabs">
+          <button
+            className={`filter-btn ${courseTypeFilter === 'all' ? 'active' : ''}`}
+            onClick={() => setCourseTypeFilter('all')}
+          >
+            All Courses
+          </button>
+          <button
+            className={`filter-btn ${courseTypeFilter === 'certificate' ? 'active' : ''}`}
+            onClick={() => setCourseTypeFilter('certificate')}
+          >
+            🎓 Advanced (Certificate)
+          </button>
+          <button
+            className={`filter-btn ${courseTypeFilter === 'learning' ? 'active' : ''}`}
+            onClick={() => setCourseTypeFilter('learning')}
+          >
+            📖 Learning (Educational)
+          </button>
+        </div>
       </section>
 
       <section className="dashboard">
@@ -193,13 +231,28 @@ export default function LearnPage() {
             {visibleList.map((c) => {
               const pct = c.total > 0 ? Math.round((c.done / c.total) * 100) : 0;
               return (
-                <div className="course-row" key={c.id}>
+                <div 
+                  className="course-row" 
+                  key={c.id}
+                  style={{
+                    borderTopColor: c.badgeColor,
+                    borderTopWidth: '4px'
+                  }}
+                >
                   <div className="course-row-top">
                     <div className="course-badge">{c.icon}</div>
                     <div className="course-row-info">
-                      <p className="course-provider">
-                        SafeHaven {c.advanced ? '· Advanced' : ''}
-                      </p>
+                      <div className="course-provider-section">
+                        <p className="course-provider">
+                          SafeHaven {c.advanced ? '· Advanced' : ''}
+                        </p>
+                        <span 
+                          className="course-type-badge" 
+                          style={{ backgroundColor: c.badgeColor }}
+                        >
+                          {c.badge}
+                        </span>
+                      </div>
                       <p className="course-row-title">{c.title}</p>
                       <p className="course-row-meta">
                         Course · {pct}% complete
@@ -279,7 +332,69 @@ export default function LearnPage() {
         </div>
       </section>
 
+      <section className="info-section">
+        <div className="info-container">
+          <h2>What's the Difference?</h2>
+          <div className="comparison">
+            <div className="comparison-col advanced">
+              <h3>🎓 Advanced Courses</h3>
+              <ul>
+                <li>✓ Structured curriculum with modules</li>
+                <li>✓ Final knowledge assessment quiz</li>
+                <li>✓ Earn verified certificate (80%+)</li>
+                <li>✓ Certificate ID for verification</li>
+                <li>✓ Track progress with percentage</li>
+                <li>✓ 30-45 minutes per course</li>
+              </ul>
+            </div>
+            <div className="comparison-col learning">
+              <h3>📖 Learning Courses</h3>
+              <ul>
+                <li>✓ Quick educational modules</li>
+                <li>✓ No formal assessment</li>
+                <li>✓ Learn at your own pace</li>
+                <li>✓ No certificate (educational only)</li>
+                <li>✓ Simple progress tracking</li>
+                <li>✓ 5-8 minutes per course</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </section>
+
       <style jsx>{`
+        .filter-section {
+          max-width: 1000px;
+          margin: 0 auto;
+          padding: 20px 24px;
+        }
+        .filter-tabs {
+          display: flex;
+          gap: 12px;
+          flex-wrap: wrap;
+          justify-content: center;
+        }
+        .filter-btn {
+          padding: 10px 20px;
+          font-size: 0.9rem;
+          font-weight: 700;
+          border: 2px solid var(--sand);
+          background: white;
+          border-radius: 20px;
+          cursor: pointer;
+          transition: all 0.3s ease;
+          color: var(--muted);
+        }
+        .filter-btn:hover {
+          border-color: var(--rose);
+          color: var(--rose);
+        }
+        .filter-btn.active {
+          background: var(--rose);
+          color: white;
+          border-color: var(--rose);
+        }
+
         .header-band {
           max-width: 1000px;
           margin: 0 auto;
@@ -372,13 +487,28 @@ export default function LearnPage() {
           font-size: 1.15rem;
           flex-shrink: 0;
         }
+        .course-provider-section {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          margin-bottom: 6px;
+        }
         .course-provider {
           font-size: 0.72rem;
           font-weight: 700;
           text-transform: uppercase;
           letter-spacing: 0.04em;
           color: var(--rose-deep);
-          margin-bottom: 3px;
+          margin-bottom: 0;
+        }
+        .course-type-badge {
+          font-size: 0.65rem;
+          font-weight: 700;
+          color: white;
+          padding: 3px 8px;
+          border-radius: 12px;
+          text-transform: uppercase;
+          letter-spacing: 0.03em;
         }
         .course-row-title {
           font-size: 1.02rem;
@@ -510,9 +640,75 @@ export default function LearnPage() {
           color: var(--rose-deep);
         }
 
+        .info-section {
+          max-width: 1000px;
+          margin: 60px auto;
+          padding: 0 24px;
+        }
+        .info-container {
+          background: white;
+          border-radius: 14px;
+          padding: 40px;
+          border: 1px solid var(--sand);
+        }
+        .info-container h2 {
+          font-size: 1.8rem;
+          color: var(--ink);
+          text-align: center;
+          margin-bottom: 40px;
+          font-weight: 800;
+        }
+        .comparison {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 40px;
+        }
+        .comparison-col {
+          padding: 25px;
+          border-radius: 10px;
+          border-left: 4px solid;
+        }
+        .comparison-col.advanced {
+          border-left-color: #4caf50;
+          background: #f1f8f5;
+        }
+        .comparison-col.learning {
+          border-left-color: #2196f3;
+          background: #f3f8fd;
+        }
+        .comparison-col h3 {
+          font-size: 1.2rem;
+          color: var(--ink);
+          margin-bottom: 16px;
+          font-weight: 800;
+        }
+        .comparison-col ul {
+          list-style: none;
+          padding: 0;
+          margin: 0;
+        }
+        .comparison-col li {
+          font-size: 0.9rem;
+          color: var(--ink);
+          line-height: 1.8;
+          margin-bottom: 12px;
+        }
+
         @media (max-width: 800px) {
           .dashboard {
             grid-template-columns: 1fr;
+          }
+          .comparison {
+            grid-template-columns: 1fr;
+          }
+          .info-container {
+            padding: 24px;
+          }
+          .filter-tabs {
+            flex-direction: column;
+          }
+          .filter-btn {
+            width: 100%;
           }
         }
       `}</style>
