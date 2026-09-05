@@ -21,7 +21,54 @@ export default function JennetChat({ compact = false }) {
   const [location, setLocation] = useState(null);
   const [locating, setLocating] = useState(false);
   const [locationError, setLocationError] = useState('');
+  const [recording, setRecording] = useState(false);
+  const [speechSupported, setSpeechSupported] = useState(false);
   const windowRef = useRef(null);
+  const recognitionRef = useRef(null);
+
+  useEffect(() => {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    setSpeechSupported(!!SpeechRecognition);
+    return () => {
+      recognitionRef.current?.stop();
+    };
+  }, []);
+
+  const toggleRecording = () => {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) return;
+
+    if (recording) {
+      recognitionRef.current?.stop();
+      return;
+    }
+
+    const recognition = new SpeechRecognition();
+    recognition.lang = 'en-US';
+    recognition.continuous = false;
+    recognition.interimResults = true;
+
+    // Fills the text box as you speak rather than sending automatically,
+    // so you can still see and edit what it heard before anything sends,
+    // same as if you'd typed it yourself.
+    recognition.onresult = (event) => {
+      let transcript = '';
+      for (let i = 0; i < event.results.length; i++) {
+        transcript += event.results[i][0].transcript;
+      }
+      setInput(transcript);
+    };
+    recognition.onerror = () => setRecording(false);
+    recognition.onend = () => setRecording(false);
+
+    recognitionRef.current = recognition;
+    try {
+      recognition.start();
+      setRecording(true);
+    } catch {
+      setRecording(false);
+    }
+  };
 
   const shareLocation = () => {
     if (!navigator.geolocation) {
@@ -165,6 +212,16 @@ export default function JennetChat({ compact = false }) {
           onKeyDown={handleKeyDown}
           placeholder="Ask Jennet anything about GBV…"
         />
+        {speechSupported && (
+          <button
+            type="button"
+            className={`chat-mic ${recording ? 'recording' : ''}`}
+            onClick={toggleRecording}
+            aria-label={recording ? 'Stop recording' : 'Speak your message'}
+          >
+            {recording ? '⏹' : '🎤'}
+          </button>
+        )}
         <button
           className="chat-send"
           onClick={sendMessage}
@@ -383,6 +440,35 @@ export default function JennetChat({ compact = false }) {
         .chat-send:disabled {
           opacity: 0.5;
           cursor: not-allowed;
+        }
+        .chat-mic {
+          width: 40px;
+          height: 40px;
+          border-radius: 50%;
+          background: white;
+          color: var(--rose-deep);
+          border: 1.5px solid var(--sand);
+          font-size: 1rem;
+          cursor: pointer;
+          flex-shrink: 0;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+        .chat-mic.recording {
+          background: var(--rose);
+          color: white;
+          border-color: var(--rose);
+          animation: micPulse 1.4s infinite;
+        }
+        @keyframes micPulse {
+          0%,
+          100% {
+            box-shadow: 0 0 0 0 rgba(214, 51, 108, 0.4);
+          }
+          50% {
+            box-shadow: 0 0 0 8px rgba(214, 51, 108, 0);
+          }
         }
       `}</style>
     </div>
