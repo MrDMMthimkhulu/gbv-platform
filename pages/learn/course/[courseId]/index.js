@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 import Layout from '../../../../components/Layout';
+import CourseVideoIntro from '../../../../components/CourseVideoIntro';
 import { supabase } from '../../../../lib/supabaseClient';
 import { ADVANCED_COURSES } from '../../../../lib/allyCourseData';
 
@@ -85,6 +86,10 @@ export default function CourseOverviewPage() {
         </div>
 
         <p className="description">{course.description}</p>
+
+        <div className="video-box">
+          <CourseVideoIntro courseId={courseId} showEmbed={false} />
+        </div>
 
         {user && started && (
           <div className="progress-box">
@@ -199,6 +204,13 @@ export default function CourseOverviewPage() {
           font-size: 0.98rem;
           line-height: 1.65;
           color: var(--ink);
+          margin-bottom: 24px;
+        }
+
+        .video-box {
+          background: white;
+          border-radius: 12px;
+          padding: 20px;
           margin-bottom: 24px;
         }
 
