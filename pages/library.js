@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import Head from 'next/head';
+import Link from 'next/link';
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 import Layout from '../components/Layout';
 import { supabase } from '../lib/supabaseClient';
@@ -16,7 +17,7 @@ function DocSection({ title, docs }) {
       <h2 className="section-title">{title}</h2>
       <div className="doc-grid">
         {docs.map((d) => (
-          <a href={d.file_url} className="doc-card-link" key={d.id} target="_blank" rel="noreferrer">
+          <Link href={`/library/${d.id}`} className="doc-card-link" key={d.id}>
             <div className="doc-card">
               <div className="doc-cover">
                 {d.cover_image_url ? (
@@ -39,9 +40,9 @@ function DocSection({ title, docs }) {
                   ))}
                 </div>
               </div>
-              <span className="doc-download">↓</span>
+              <span className="doc-arrow">›</span>
             </div>
-          </a>
+          </Link>
         ))}
       </div>
       <style jsx>{`
@@ -135,11 +136,69 @@ function DocSection({ title, docs }) {
           padding: 2px 8px;
           border-radius: 999px;
         }
-        .doc-download {
-          font-size: 1.2rem;
+        .doc-arrow {
+          font-size: 1.4rem;
           font-weight: 800;
-          color: var(--rose-deep);
+          color: var(--sand);
           flex-shrink: 0;
+        }
+        .doc-card:hover .doc-arrow {
+          color: var(--rose-deep);
+        }
+      `}</style>
+    </div>
+  );
+}
+
+function OtherAudiencePrompt({ text, buttonLabel, onClick }) {
+  return (
+    <div className="other-audience-prompt">
+      <span className="other-audience-icon">👥</span>
+      <div className="other-audience-body">
+        <p>{text}</p>
+        <button onClick={onClick}>{buttonLabel}</button>
+      </div>
+      <style jsx>{`
+        .other-audience-prompt {
+          display: flex;
+          align-items: flex-start;
+          gap: 16px;
+          background: var(--warm);
+          border: 1px solid var(--sand);
+          border-radius: 14px;
+          padding: 20px 22px;
+          margin-bottom: 40px;
+        }
+        .other-audience-icon {
+          font-size: 1.4rem;
+          flex-shrink: 0;
+          width: 40px;
+          height: 40px;
+          border-radius: 50%;
+          background: white;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+        .other-audience-body p {
+          font-size: 0.86rem;
+          color: var(--muted);
+          line-height: 1.55;
+          margin-bottom: 12px;
+        }
+        .other-audience-body button {
+          background: white;
+          border: 1.5px solid var(--rose-deep);
+          color: var(--rose-deep);
+          font-size: 0.8rem;
+          font-weight: 700;
+          padding: 8px 18px;
+          border-radius: 999px;
+          cursor: pointer;
+        }
+        .other-audience-body button:hover {
+          background: var(--rose-deep);
+          color: white;
         }
       `}</style>
     </div>
@@ -307,9 +366,11 @@ export default function LibraryPage() {
                 {showOtherSection ? (
                   <DocSection title="18 and over" docs={over18Docs} />
                 ) : (
-                  <button className="show-other-btn" onClick={() => setShowOtherSection(true)}>
-                    Looking for the 18 and over guides instead? Show them
-                  </button>
+                  <OtherAudiencePrompt
+                    text="This library also has guides written for adults, useful if you're a parent, teacher, or an older friend supporting someone through this."
+                    buttonLabel="Show the 18 and over guides"
+                    onClick={() => setShowOtherSection(true)}
+                  />
                 )}
               </>
             )}
@@ -320,9 +381,11 @@ export default function LibraryPage() {
                 {showOtherSection ? (
                   <DocSection title="Under 18" docs={under18Docs} />
                 ) : (
-                  <button className="show-other-btn" onClick={() => setShowOtherSection(true)}>
-                    Looking for the under-18 guides instead? Show them
-                  </button>
+                  <OtherAudiencePrompt
+                    text="This library also has guides written specifically for readers under 18, useful if you're a parent, educator, or supporting a younger person."
+                    buttonLabel="Show the under-18 guides"
+                    onClick={() => setShowOtherSection(true)}
+                  />
                 )}
               </>
             )}
@@ -422,20 +485,6 @@ export default function LibraryPage() {
           background: var(--warm);
           border-radius: 10px;
           padding: 16px 18px;
-        }
-        .show-other-btn {
-          display: block;
-          width: 100%;
-          text-align: left;
-          background: var(--warm);
-          border: 1px dashed var(--sand);
-          border-radius: 10px;
-          padding: 14px 18px;
-          font-size: 0.85rem;
-          font-weight: 600;
-          color: var(--rose-deep);
-          cursor: pointer;
-          margin-bottom: 36px;
         }
 
       `}</style>
