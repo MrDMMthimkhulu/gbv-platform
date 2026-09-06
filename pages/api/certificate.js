@@ -1,5 +1,5 @@
-// pages/api/certificate.js (WITH QR CODE)
-// Generates certificate PDF with QR code for verification
+// pages/api/certificate.js
+// Generates certificate PDF with verification instructions
 
 import { createClient } from '@supabase/supabase-js';
 import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
@@ -7,14 +7,6 @@ import crypto from 'crypto';
 import fs from 'fs';
 import path from 'path';
 import { ADVANCED_COURSES } from '../../lib/allyCourseData';
-
-// QR Code generator (simple base64 SVG)
-function generateQRCode(data) {
-  // Use a public QR code API to generate the QR code
-  // This returns the QR code as a URL string
-  const encoded = encodeURIComponent(data);
-  return `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encoded}`;
-}
 
 function makeCertificateId(userId, courseId, issuedAt) {
   const hash = crypto
@@ -88,10 +80,6 @@ export default async function handler(req, res) {
       console.error('Failed to store certificate ID:', updateError);
     }
   }
-
-  // ========== GENERATE QR CODE URL ==========
-  const verifyUrl = `https://safehaven.org/certificates/verify?id=${certificateId}`;
-  const qrCodeUrl = generateQRCode(verifyUrl);
 
   let pdfBytes;
   try {
@@ -389,32 +377,27 @@ export default async function handler(req, res) {
     });
     centerRibbonText('SafeHaven', sealCenterY - 12, sansBold, 11, plum);
 
-    // ========== VERIFY + QR CODE + CERTIFICATE ID ==========
+    // ========== VERIFY + CERTIFICATE ID ==========
     centerRibbonText('Verify this certificate:', 190, sans, 9, ink);
 
-    // QR Code placeholder box
-    const qrSize = 60;
-    const qrX = centerX - qrSize / 2;
-    const qrY = 110;
+    // Verification instructions box
+    const boxY = 90;
+    const boxHeight = 70;
     
     page.drawRectangle({
-      x: qrX,
-      y: qrY,
-      width: qrSize,
-      height: qrSize,
+      x: centerX - 70,
+      y: boxY,
+      width: 140,
+      height: boxHeight,
       borderColor: sand,
       borderWidth: 1,
       color: white,
     });
 
-    // QR Code text
-    page.drawText('Scan QR Code', {
-      x: centerX - sans.widthOfTextAtSize('Scan QR Code', 7) / 2,
-      y: qrY - 12,
-      size: 7,
-      font: sans,
-      color: muted,
-    });
+    centerRibbonText('Visit:', centerX, boxY + 45, sans, 8, ink);
+    centerRibbonText('safehaven.org/', centerX, boxY + 35, sans, 8, ink);
+    centerRibbonText('certificates/verify', centerX, boxY + 25, sans, 8, ink);
+    centerRibbonText('+ Enter ID below', centerX, boxY + 12, sans, 7, muted);
 
     // Certificate ID below
     const idText = `ID: ${certificateId}`;
@@ -426,33 +409,6 @@ export default async function handler(req, res) {
       font: sans,
       color: muted,
     });
-
-    // Or visit text
-    page.drawText('or visit: safehaven.org/certificates/verify', {
-      x: centerX - sans.widthOfTextAtSize('or visit: safehaven.org/certificates/verify', 7) / 2,
-      y: 22,
-      size: 7,
-      font: sans,
-      color: muted,
-    });
-
-    // ========== EMBED QR CODE IMAGE ==========
-    try {
-      // Use native fetch (available in Node.js 18+)
-      const qrResponse = await fetch(qrCodeUrl);
-      const qrBuffer = await qrResponse.buffer();
-      const qrImage = await pdfDoc.embedPng(qrBuffer);
-      
-      page.drawImage(qrImage, {
-        x: qrX + 2,
-        y: qrY + 2,
-        width: qrSize - 4,
-        height: qrSize - 4,
-      });
-    } catch (qrErr) {
-      console.warn('QR code embedding failed, continuing without it:', qrErr.message);
-      // QR placeholder box still shows, just without the actual QR image
-    }
 
     pdfBytes = await pdfDoc.save();
   } catch (buildErr) {
