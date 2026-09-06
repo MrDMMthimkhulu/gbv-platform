@@ -377,29 +377,7 @@ export default async function handler(req, res) {
     });
     centerRibbonText('SafeHaven', sealCenterY - 12, sansBold, 11, plum);
 
-    // ========== VERIFY + CERTIFICATE ID ==========
-    centerRibbonText('Verify this certificate:', 190, sans, 9, ink);
-
-    // Verification instructions box
-    const boxY = 90;
-    const boxHeight = 70;
-    
-    page.drawRectangle({
-      x: centerX - 70,
-      y: boxY,
-      width: 140,
-      height: boxHeight,
-      borderColor: sand,
-      borderWidth: 1,
-      color: white,
-    });
-
-    centerRibbonText('Visit:', boxY + 45, sans, 8, ink);
-    centerRibbonText('safehaven.org/', boxY + 35, sans, 8, ink);
-    centerRibbonText('certificates/verify', boxY + 25, sans, 8, ink);
-    centerRibbonText('+ Enter ID below', boxY + 12, sans, 7, muted);
-
-    // Certificate ID below
+    // Certificate ID at bottom of ribbon
     const idText = `ID: ${certificateId}`;
     const idWidth = sans.widthOfTextAtSize(idText, 7);
     page.drawText(idText, {
