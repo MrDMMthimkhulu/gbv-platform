@@ -190,7 +190,7 @@ The person you're talking to has told the site they're 18 or older. Match the to
 
 function systemPromptFor(ageGroup) {
   if (ageGroup === 'under18') return SYSTEM_PROMPT + UNDER18_ADDENDUM;
-  if (ageGroup === '18+' || ageGroup === 'adult') return SYSTEM_PROMPT + ADULT_ADDENDUM;
+  if (ageGroup === '18plus') return SYSTEM_PROMPT + ADULT_ADDENDUM;
   return SYSTEM_PROMPT; // not logged in, or age unknown, stays neutral
 }
 
