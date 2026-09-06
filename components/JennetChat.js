@@ -1,4 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
+import Link from 'next/link';
+import { supabase } from '../lib/supabaseClient';
 
 export const JENNET_NAME = 'Jennet';
 export const JENNET_TITLE = 'GBV Support Specialist';
@@ -23,8 +25,28 @@ export default function JennetChat({ compact = false }) {
   const [locationError, setLocationError] = useState('');
   const [recording, setRecording] = useState(false);
   const [speechSupported, setSpeechSupported] = useState(false);
+  const [ageGroup, setAgeGroup] = useState(null);
+  const [speakOn, setSpeakOn] = useState(false);
+  const [ttsSupported, setTtsSupported] = useState(false);
   const windowRef = useRef(null);
   const recognitionRef = useRef(null);
+
+  // Same age_group field used across the rest of the site (homepage,
+  // rights page), so Jennet's tone matches whatever the person already
+  // sees everywhere else, rather than being the one inconsistent part.
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => {
+      setAgeGroup(data.user?.user_metadata?.age_group ?? null);
+    });
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+      setAgeGroup(session?.user?.user_metadata?.age_group ?? null);
+    });
+    return () => listener?.subscription?.unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    setTtsSupported(typeof window !== 'undefined' && 'speechSynthesis' in window);
+  }, []);
 
   useEffect(() => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -68,6 +90,19 @@ export default function JennetChat({ compact = false }) {
     } catch {
       setRecording(false);
     }
+  };
+
+  const speak = (text) => {
+    if (!ttsSupported || !speakOn) return;
+    window.speechSynthesis.cancel(); // don't stack replies if one's already talking
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.rate = 1;
+    window.speechSynthesis.speak(utterance);
+  };
+
+  const toggleSpeak = () => {
+    if (speakOn) window.speechSynthesis.cancel();
+    setSpeakOn((v) => !v);
   };
 
   const shareLocation = () => {
@@ -118,12 +153,29 @@ export default function JennetChat({ compact = false }) {
         body: JSON.stringify({
           messages: nextMessages.map((m) => ({ role: m.role, content: m.content })),
           location: location || undefined,
+          ageGroup: ageGroup || undefined,
         }),
       });
+
+      if (res.status === 429) {
+        setMessages([
+          ...nextMessages,
+          {
+            role: 'assistant',
+            content: "I'm getting a lot of messages right now, please wait a few minutes before sending another.",
+          },
+        ]);
+        return;
+      }
+
       const data = await res.json();
 
       if (data.reply) {
-        setMessages([...nextMessages, { role: 'assistant', content: data.reply }]);
+        setMessages([
+          ...nextMessages,
+          { role: 'assistant', content: data.reply, actions: data.actions || [] },
+        ]);
+        speak(data.reply);
       } else {
         setMessages([
           ...nextMessages,
@@ -165,12 +217,38 @@ export default function JennetChat({ compact = false }) {
           <p className="chat-name">{JENNET_NAME}</p>
           <p className="chat-status">Online · {JENNET_TITLE}</p>
         </div>
+        {ttsSupported && (
+          <button
+            type="button"
+            className={`chat-tts-toggle ${speakOn ? 'on' : ''}`}
+            onClick={toggleSpeak}
+            aria-label={speakOn ? 'Turn off spoken replies' : 'Turn on spoken replies'}
+            title={speakOn ? 'Replies are read aloud, tap to turn off' : 'Tap to have replies read aloud'}
+          >
+            {speakOn ? '🔊' : '🔇'}
+          </button>
+        )}
       </div>
 
       <div className="chat-window" ref={windowRef}>
         {messages.map((m, i) => (
           <div key={i} className={`msg ${m.role === 'user' ? 'msg-user' : 'msg-bot'}`}>
             <div className="msg-bubble">{m.content}</div>
+            {m.actions?.length > 0 && (
+              <div className="msg-actions">
+                {m.actions.map((a, j) =>
+                  a.type === 'tel' ? (
+                    <a key={j} href={`tel:${a.value}`} className="msg-action-chip">
+                      📞 {a.label}
+                    </a>
+                  ) : (
+                    <Link key={j} href={a.value} className="msg-action-chip">
+                      🗺️ {a.label}
+                    </Link>
+                  )
+                )}
+              </div>
+            )}
           </div>
         ))}
         {loading && (
@@ -285,6 +363,50 @@ export default function JennetChat({ compact = false }) {
           height: 6px;
           border-radius: 50%;
           background: var(--teal-light);
+        }
+        .chat-tts-toggle {
+          margin-left: auto;
+          width: 36px;
+          height: 36px;
+          border-radius: 50%;
+          background: rgba(255, 255, 255, 0.1);
+          border: 1px solid rgba(255, 255, 255, 0.2);
+          color: white;
+          font-size: 0.95rem;
+          cursor: pointer;
+          flex-shrink: 0;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+        .chat-tts-toggle.on {
+          background: var(--rose);
+          border-color: var(--rose);
+        }
+
+        .msg-actions {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 6px;
+          margin-top: 8px;
+        }
+        .msg-action-chip {
+          display: inline-flex;
+          align-items: center;
+          gap: 5px;
+          padding: 6px 12px;
+          border-radius: 20px;
+          background: white;
+          border: 1px solid var(--rose);
+          color: var(--rose-deep);
+          font-size: 0.76rem;
+          font-weight: 600;
+          text-decoration: none;
+          cursor: pointer;
+        }
+        .msg-action-chip:hover {
+          background: var(--rose);
+          color: white;
         }
 
         .chat-window {
