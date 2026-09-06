@@ -153,6 +153,18 @@ export default function LibraryPage() {
   const [activeTopic, setActiveTopic] = useState('All');
   const [activeType, setActiveType] = useState('All');
   const [showAllTopics, setShowAllTopics] = useState(false);
+  const [ageGroup, setAgeGroup] = useState(null);
+  const [showOtherSection, setShowOtherSection] = useState(false);
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => {
+      setAgeGroup(data.user?.user_metadata?.age_group ?? null);
+    });
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+      setAgeGroup(session?.user?.user_metadata?.age_group ?? null);
+    });
+    return () => listener?.subscription?.unsubscribe();
+  }, []);
 
   useEffect(() => {
     supabase
@@ -196,6 +208,17 @@ export default function LibraryPage() {
     () => filtered.filter((d) => (d.audience || 'all') !== 'under18'),
     [filtered]
   );
+
+  // Default to only the viewer's own age section, matching how the rest
+  // of the site (homepage, rights page) already personalises by age.
+  // Logged-out visitors, or anyone whose age isn't set, still see both,
+  // since we genuinely don't know which is right for them. Either way,
+  // the OTHER section stays one deliberate tap away rather than hidden
+  // entirely, parents, educators, and older teens sometimes have real
+  // reasons to look at the other one on purpose.
+  const isMinor = ageGroup === 'under18';
+  const isAdult = ageGroup === '18plus';
+  const personalised = isMinor || isAdult;
 
   return (
     <Layout>
@@ -271,8 +294,38 @@ export default function LibraryPage() {
 
         {!loading && filtered.length > 0 && (
           <>
-            <DocSection title="Under 18" docs={under18Docs} />
-            <DocSection title="18 and over" docs={over18Docs} />
+            {!personalised && (
+              <>
+                <DocSection title="Under 18" docs={under18Docs} />
+                <DocSection title="18 and over" docs={over18Docs} />
+              </>
+            )}
+
+            {isMinor && (
+              <>
+                <DocSection title="Under 18" docs={under18Docs} />
+                {showOtherSection ? (
+                  <DocSection title="18 and over" docs={over18Docs} />
+                ) : (
+                  <button className="show-other-btn" onClick={() => setShowOtherSection(true)}>
+                    Looking for the 18 and over guides instead? Show them
+                  </button>
+                )}
+              </>
+            )}
+
+            {isAdult && (
+              <>
+                <DocSection title="18 and over" docs={over18Docs} />
+                {showOtherSection ? (
+                  <DocSection title="Under 18" docs={under18Docs} />
+                ) : (
+                  <button className="show-other-btn" onClick={() => setShowOtherSection(true)}>
+                    Looking for the under-18 guides instead? Show them
+                  </button>
+                )}
+              </>
+            )}
           </>
         )}
       </section>
@@ -369,6 +422,20 @@ export default function LibraryPage() {
           background: var(--warm);
           border-radius: 10px;
           padding: 16px 18px;
+        }
+        .show-other-btn {
+          display: block;
+          width: 100%;
+          text-align: left;
+          background: var(--warm);
+          border: 1px dashed var(--sand);
+          border-radius: 10px;
+          padding: 14px 18px;
+          font-size: 0.85rem;
+          font-weight: 600;
+          color: var(--rose-deep);
+          cursor: pointer;
+          margin-bottom: 36px;
         }
 
       `}</style>
