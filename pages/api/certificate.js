@@ -410,25 +410,12 @@ export default async function handler(req, res) {
     // Make verification text a clickable link
     const verifyText = 'safehaven.org/verify';
     const verifyWidth = sansBold.widthOfTextAtSize(verifyText, 8.5);
-    const verifyLinkX = centerX - verifyWidth / 2;
-    const verifyLinkY = pillY + 8;
-    
     page.drawText(verifyText, {
-      x: verifyLinkX,
-      y: verifyLinkY,
+      x: centerX - verifyWidth / 2,
+      y: pillY + 8,
       size: 8.5,
       font: sansBold,
       color: white,
-    });
-
-    // Add clickable annotation (PDF link)
-    page.addAnnotation({
-      type: 'Link',
-      x: verifyLinkX - 5,
-      y: verifyLinkY,
-      width: verifyWidth + 10,
-      height: 12,
-      uri: `https://safehaven.org/certificates/verify?id=${certificateId}`,
     });
 
     const idText = `Certificate ID: ${certificateId}`;
