@@ -438,10 +438,7 @@ export default async function handler(req, res) {
 
     // ========== EMBED QR CODE IMAGE ==========
     try {
-      // Fetch QR code from API
-      const fetch_import = await import('node-fetch');
-      const fetch = fetch_import.default;
-      
+      // Use native fetch (available in Node.js 18+)
       const qrResponse = await fetch(qrCodeUrl);
       const qrBuffer = await qrResponse.buffer();
       const qrImage = await pdfDoc.embedPng(qrBuffer);
