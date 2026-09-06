@@ -10,6 +10,20 @@ const AUDIENCE_LABELS = {
   '18plus': '18+',
 };
 
+const LANGUAGES = [
+  { code: 'en', label: 'English' },
+  { code: 'zu', label: 'isiZulu' },
+  { code: 'xh', label: 'isiXhosa' },
+  { code: 'af', label: 'Afrikaans' },
+  { code: 'nso', label: 'Sepedi' },
+  { code: 'tn', label: 'Setswana' },
+  { code: 'st', label: 'Sesotho' },
+  { code: 'ts', label: 'Xitsonga' },
+  { code: 'ss', label: 'siSwati' },
+  { code: 've', label: 'Tshivenda' },
+  { code: 'nr', label: 'isiNdebele' },
+];
+
 const EMPTY = {
   id: null,
   title: '',
@@ -21,6 +35,7 @@ const EMPTY = {
   estimated_minutes: '',
   cover_image_url: '',
   file_url: '',
+  translationRows: [],
 };
 
 export default function AdminDocumentsPage() {
@@ -54,6 +69,11 @@ export default function AdminDocumentsPage() {
     e.preventDefault();
     setSaveMsg('');
 
+    const translations = {};
+    for (const row of form.translationRows) {
+      if (row.lang && row.url) translations[row.lang] = row.url;
+    }
+
     const payload = {
       title: form.title,
       description: form.description || null,
@@ -66,6 +86,7 @@ export default function AdminDocumentsPage() {
       estimated_minutes: form.estimated_minutes ? parseInt(form.estimated_minutes, 10) : null,
       cover_image_url: form.cover_image_url || null,
       file_url: form.file_url,
+      translations,
     };
 
     if (!payload.title || !payload.file_url) {
@@ -94,9 +115,28 @@ export default function AdminDocumentsPage() {
       audience: d.audience || 'all',
       topics: (d.topics || []).join(', '),
       estimated_minutes: d.estimated_minutes || '',
+      translationRows: Object.entries(d.translations || {}).map(([lang, url]) => ({ lang, url })),
     });
     setSaveMsg('');
     window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const addTranslationRow = () => {
+    setForm((f) => ({ ...f, translationRows: [...f.translationRows, { lang: '', url: '' }] }));
+  };
+
+  const updateTranslationRow = (index, field, value) => {
+    setForm((f) => ({
+      ...f,
+      translationRows: f.translationRows.map((r, i) => (i === index ? { ...r, [field]: value } : r)),
+    }));
+  };
+
+  const removeTranslationRow = (index) => {
+    setForm((f) => ({
+      ...f,
+      translationRows: f.translationRows.filter((_, i) => i !== index),
+    }));
   };
 
   const remove = async (id) => {
@@ -244,7 +284,7 @@ export default function AdminDocumentsPage() {
           </label>
 
           <label className="full">
-            File URL (the PDF link)
+            File URL (the original / default version)
             <input
               value={form.file_url}
               onChange={(e) => setForm({ ...form, file_url: e.target.value })}
@@ -252,6 +292,49 @@ export default function AdminDocumentsPage() {
               required
             />
           </label>
+
+          <div className="translations-block">
+            <div className="translations-head">
+              <span>Other language versions (optional)</span>
+              <button type="button" className="add-translation-btn" onClick={addTranslationRow}>
+                + Add a language
+              </button>
+            </div>
+            {form.translationRows.length === 0 && (
+              <p className="translations-hint">
+                Only the original version above is available so far. Add a row here for each
+                additional translated PDF as it's ready.
+              </p>
+            )}
+            {form.translationRows.map((row, i) => (
+              <div className="translation-row" key={i}>
+                <select
+                  value={row.lang}
+                  onChange={(e) => updateTranslationRow(i, 'lang', e.target.value)}
+                >
+                  <option value="">Language…</option>
+                  {LANGUAGES.map((l) => (
+                    <option key={l.code} value={l.code}>
+                      {l.label}
+                    </option>
+                  ))}
+                </select>
+                <input
+                  value={row.url}
+                  onChange={(e) => updateTranslationRow(i, 'url', e.target.value)}
+                  placeholder="https://.../my-ebook-zu.pdf"
+                />
+                <button
+                  type="button"
+                  className="remove-translation-btn"
+                  onClick={() => removeTranslationRow(i)}
+                  aria-label="Remove this language version"
+                >
+                  ✕
+                </button>
+              </div>
+            ))}
+          </div>
 
           <label className="full">
             Cover image URL (optional)
@@ -366,6 +449,60 @@ export default function AdminDocumentsPage() {
           color: var(--muted);
           margin: -6px 0 14px;
           line-height: 1.5;
+        }
+        .translations-block {
+          background: var(--warm);
+          border: 1px solid var(--sand);
+          border-radius: 10px;
+          padding: 14px 16px;
+          margin-bottom: 18px;
+        }
+        .translations-head {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          margin-bottom: 8px;
+        }
+        .translations-head span {
+          font-size: 0.78rem;
+          font-weight: 700;
+          color: var(--ink);
+        }
+        .add-translation-btn {
+          background: none;
+          border: none;
+          color: var(--rose-deep);
+          font-size: 0.78rem;
+          font-weight: 700;
+          cursor: pointer;
+        }
+        .translations-hint {
+          font-size: 0.76rem;
+          color: var(--muted);
+          line-height: 1.5;
+        }
+        .translation-row {
+          display: grid;
+          grid-template-columns: 150px 1fr 32px;
+          gap: 8px;
+          margin-top: 8px;
+        }
+        .translation-row select,
+        .translation-row input {
+          border: 1px solid var(--sand);
+          border-radius: 8px;
+          padding: 8px 10px;
+          font-size: 0.82rem;
+          font-family: inherit;
+          color: var(--ink);
+        }
+        .remove-translation-btn {
+          background: white;
+          border: 1px solid var(--sand);
+          border-radius: 8px;
+          color: var(--muted);
+          cursor: pointer;
+          font-size: 0.85rem;
         }
         label {
           display: flex;
