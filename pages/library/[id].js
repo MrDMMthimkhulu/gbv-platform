@@ -66,7 +66,16 @@ export default function DocumentDetailPage() {
       <Layout>
         <div className="state-wrap">
           <p>We couldn&apos;t find that document.</p>
-          <Link href="/library" className="back-link">
+          <Link
+            href="/library"
+            style={{
+              display: 'inline-block',
+              marginTop: '16px',
+              color: 'var(--rose-deep)',
+              fontWeight: 700,
+              textDecoration: 'none',
+            }}
+          >
             ← Back to the Library
           </Link>
         </div>
@@ -76,12 +85,6 @@ export default function DocumentDetailPage() {
             margin: 0 auto;
             padding: 100px 24px;
             text-align: center;
-          }
-          .back-link {
-            display: inline-block;
-            margin-top: 16px;
-            color: var(--rose-deep);
-            font-weight: 700;
           }
         `}</style>
       </Layout>
@@ -107,7 +110,17 @@ export default function DocumentDetailPage() {
       </Head>
 
       <div className="detail-wrap">
-        <Link href="/library" className="back-link">
+        <Link
+          href="/library"
+          style={{
+            display: 'inline-block',
+            marginBottom: '24px',
+            fontSize: '0.85rem',
+            fontWeight: 700,
+            color: 'var(--muted)',
+            textDecoration: 'none',
+          }}
+        >
           ← Back to the Library
         </Link>
 
@@ -170,17 +183,6 @@ export default function DocumentDetailPage() {
           max-width: 760px;
           margin: 0 auto;
           padding: 60px 24px 100px;
-        }
-        .back-link {
-          display: inline-block;
-          margin-bottom: 24px;
-          font-size: 0.85rem;
-          font-weight: 700;
-          color: var(--muted);
-          text-decoration: none;
-        }
-        .back-link:hover {
-          color: var(--rose-deep);
         }
         .detail-card {
           display: flex;
