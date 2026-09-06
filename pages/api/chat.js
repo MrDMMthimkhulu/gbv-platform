@@ -65,6 +65,69 @@ async function findNearestShelters(location, count = 3) {
     .slice(0, count);
 }
 
+// Best-effort in-memory rate limit, same pattern as /api/send-alert. This
+// endpoint is public and unauthenticated (Jennet works for logged-out
+// visitors too), so we limit by IP rather than by user. Resets on a cold
+// start, not a hard guarantee, but stops the obvious abuse case of
+// something hammering this endpoint and running up real API cost.
+const rateLimitMap = new Map();
+const RATE_LIMIT_WINDOW_MS = 10 * 60 * 1000; // 10 minutes
+const RATE_LIMIT_MAX = 20; // messages per window per IP
+
+function checkRateLimit(ip) {
+  const now = Date.now();
+  const entry = rateLimitMap.get(ip) || { count: 0, windowStart: now };
+  if (now - entry.windowStart > RATE_LIMIT_WINDOW_MS) {
+    entry.count = 0;
+    entry.windowStart = now;
+  }
+  entry.count += 1;
+  rateLimitMap.set(ip, entry);
+  return entry.count <= RATE_LIMIT_MAX;
+}
+
+function getClientIp(req) {
+  const forwarded = req.headers['x-forwarded-for'];
+  if (forwarded) return forwarded.split(',')[0].trim();
+  return req.socket?.remoteAddress || 'unknown';
+}
+
+// Fixed list matching exactly how these numbers are written in the
+// system prompt above, so if Jennet's reply actually mentions one, we
+// can turn it into a real tel: link client-side rather than leaving it
+// as plain unclickable text.
+const KNOWN_HOTLINES = [
+  { label: 'SAPS Emergency', tel: '10111' },
+  { label: 'GBV Command Centre', tel: '0800 428 428' },
+  { label: 'SADAG Suicide Crisis Line', tel: '0800 567 567' },
+  { label: 'Lifeline', tel: '0861 322 322' },
+  { label: 'Legal Aid South Africa', tel: '0800 110 110' },
+  { label: 'Childline', tel: '116' },
+];
+
+function extractActions(replyText, nearbyShelters) {
+  const actions = [];
+
+  for (const h of KNOWN_HOTLINES) {
+    const escaped = h.tel.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const re = new RegExp(`(?<!\\d)${escaped}(?!\\d)`);
+    if (re.test(replyText)) {
+      actions.push({ type: 'tel', label: h.label, value: h.tel.replace(/\s/g, '') });
+    }
+  }
+
+  for (const s of nearbyShelters) {
+    if (s.phone) {
+      actions.push({ type: 'tel', label: `Call ${s.name}`, value: s.phone.replace(/\D/g, '') });
+    }
+  }
+  if (nearbyShelters.length > 0) {
+    actions.push({ type: 'map', label: 'View on map', value: '/map' });
+  }
+
+  return actions;
+}
+
 // Everything runs on OpenAI now, embeddings and chat replies both, one
 // provider, one key, one place for auth to break instead of two.
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
@@ -117,6 +180,20 @@ Hard rules:
 - Never claim certainty about someone's danger level. You can express concern and point to real help; you cannot assess risk clinically.
 - Never ask for identifying details beyond a first name offered voluntarily. Never ask for a surname, address, or other identifying information.`;
 
+const UNDER18_ADDENDUM = `
+
+The person you're talking to has told the site they're under 18. Match the tone the rest of SafeHaven uses for that age group: warmer, more reassuring, less legal-procedure-forward. Lead with recognising abuse and getting to a trusted adult or Childline (116) rather than opening with legal process. Still be honest and clear, just less clinical, more like a caring older presence than an official one.`;
+
+const ADULT_ADDENDUM = `
+
+The person you're talking to has told the site they're 18 or older. Match the tone the rest of SafeHaven uses for that age group: direct, action-oriented, comfortable discussing legal recourse, protection orders, and leaving a situation, when it's relevant.`;
+
+function systemPromptFor(ageGroup) {
+  if (ageGroup === 'under18') return SYSTEM_PROMPT + UNDER18_ADDENDUM;
+  if (ageGroup === '18+' || ageGroup === 'adult') return SYSTEM_PROMPT + ADULT_ADDENDUM;
+  return SYSTEM_PROMPT; // not logged in, or age unknown, stays neutral
+}
+
 // Embed the user's question, same OpenAI model used during ingestion in
 // the n8n workflow, so query and document vectors live in the same space.
 async function embedQuery(text) {
@@ -166,7 +243,7 @@ async function retrieveContext(queryEmbedding, matchCount = 5) {
 // material is only attached when something relevant was actually found,
 // so a casual "hi" doesn't get a reference block bolted onto it, and it's
 // framed as optional, Jennet decides whether it's worth mentioning.
-function toOpenAIMessages(messages, chunks, nearbyShelters) {
+function toOpenAIMessages(messages, chunks, nearbyShelters, systemPrompt) {
   const converted = messages.map((m) => ({
     role: m.role === 'assistant' ? 'assistant' : 'user',
     content: m.content,
@@ -196,7 +273,7 @@ function toOpenAIMessages(messages, chunks, nearbyShelters) {
     converted[lastIndex].content = `${converted[lastIndex].content}${addendum}`;
   }
 
-  return [{ role: 'system', content: SYSTEM_PROMPT }, ...converted];
+  return [{ role: 'system', content: systemPrompt }, ...converted];
 }
 
 export default async function handler(req, res) {
@@ -204,7 +281,14 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { messages, location } = req.body;
+  const clientIp = getClientIp(req);
+  if (!checkRateLimit(clientIp)) {
+    return res.status(429).json({
+      error: 'Too many messages, please wait a few minutes and try again.',
+    });
+  }
+
+  const { messages, location, ageGroup } = req.body;
 
   if (!messages || !Array.isArray(messages)) {
     return res.status(400).json({ error: 'Missing messages array' });
@@ -215,6 +299,7 @@ export default async function handler(req, res) {
     const queryEmbedding = lastUserMessage ? await embedQuery(lastUserMessage.content) : null;
     const chunks = await retrieveContext(queryEmbedding);
     const nearbyShelters = await findNearestShelters(location);
+    const systemPrompt = systemPromptFor(ageGroup);
 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -224,7 +309,7 @@ export default async function handler(req, res) {
       },
       body: JSON.stringify({
         model: CHAT_MODEL,
-        messages: toOpenAIMessages(messages, chunks, nearbyShelters),
+        messages: toOpenAIMessages(messages, chunks, nearbyShelters, systemPrompt),
         max_completion_tokens: 500,
         temperature: 0.6,
       }),
@@ -244,6 +329,7 @@ export default async function handler(req, res) {
     return res.status(200).json({
       reply,
       sources: chunks.map((c) => c.source),
+      actions: extractActions(reply, nearbyShelters),
     });
   } catch (err) {
     console.error('Chat API error:', err);
