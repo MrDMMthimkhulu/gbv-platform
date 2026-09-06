@@ -39,6 +39,12 @@ export default function ProfilePage() {
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [changingPassword, setChangingPassword] = useState(false);
+  const [passwordMessage, setPasswordMessage] = useState('');
+  const [passwordError, setPasswordError] = useState('');
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
@@ -87,6 +93,64 @@ export default function ProfilePage() {
     }
 
     setMessage('Your details have been updated.');
+  };
+
+  const handleChangePassword = async (e) => {
+    e.preventDefault();
+    setPasswordError('');
+    setPasswordMessage('');
+
+    if (!currentPassword || !newPassword || !confirmPassword) {
+      setPasswordError('All password fields are required');
+      return;
+    }
+
+    if (newPassword.length < 6) {
+      setPasswordError('New password must be at least 6 characters');
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      setPasswordError('New passwords do not match');
+      return;
+    }
+
+    setChangingPassword(true);
+
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData?.session?.access_token;
+
+      const response = await fetch('/api/change-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          currentPassword,
+          newPassword,
+          token,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        setPasswordError(result.error || 'Failed to change password');
+        setChangingPassword(false);
+        return;
+      }
+
+      setPasswordMessage('Password changed successfully!');
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+      setChangingPassword(false);
+
+      setTimeout(() => setPasswordMessage(''), 3000);
+    } catch (err) {
+      console.error('Password change error:', err);
+      setPasswordError('An error occurred. Please try again.');
+      setChangingPassword(false);
+    }
   };
 
   if (loading) {
@@ -183,6 +247,42 @@ export default function ProfilePage() {
               {saving ? 'Saving…' : 'Save changes'}
             </button>
           </form>
+
+          <section className="password-section">
+            <h2>Change Password</h2>
+            <form onSubmit={handleChangePassword}>
+              {passwordError && <div className="error-message">{passwordError}</div>}
+              {passwordMessage && <div className="success-message">{passwordMessage}</div>}
+
+              <label className="field-label">Current Password</label>
+              <input
+                type="password"
+                value={currentPassword}
+                onChange={(e) => setCurrentPassword(e.target.value)}
+                placeholder="Enter your current password"
+              />
+
+              <label className="field-label">New Password</label>
+              <input
+                type="password"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                placeholder="Enter your new password"
+              />
+
+              <label className="field-label">Confirm New Password</label>
+              <input
+                type="password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                placeholder="Confirm your new password"
+              />
+
+              <button type="submit" disabled={changingPassword} className="btn btn-primary" style={{ marginTop: '20px' }}>
+                {changingPassword ? 'Changing Password...' : 'Change Password'}
+              </button>
+            </form>
+          </section>
 
           <EmergencyAlert initialContacts={emergencyContact} senderName={fullName} />
         </div>
@@ -293,6 +393,39 @@ export default function ProfilePage() {
         .submit-btn:disabled {
           opacity: 0.6;
           cursor: not-allowed;
+        }
+        input[type="submit"]:disabled {
+          opacity: 0.6;
+          cursor: not-allowed;
+        }
+        .password-section {
+          margin-top: 40px;
+          padding-top: 30px;
+          border-top: 1px solid var(--sand);
+        }
+        .password-section h2 {
+          font-size: 1.2rem;
+          font-weight: 700;
+          color: var(--ink);
+          margin-bottom: 20px;
+        }
+        .success-message {
+          background: #e8f5e9;
+          border-left: 4px solid #4caf50;
+          color: #2e7d32;
+          padding: 12px 16px;
+          border-radius: 4px;
+          margin-bottom: 16px;
+          font-size: 0.9rem;
+        }
+        .error-message {
+          background: #ffebee;
+          border-left: 4px solid #f44336;
+          color: #c62828;
+          padding: 12px 16px;
+          border-radius: 4px;
+          margin-bottom: 16px;
+          font-size: 0.9rem;
         }
       `}</style>
     </Layout>
