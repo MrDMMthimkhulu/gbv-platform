@@ -394,10 +394,10 @@ export default async function handler(req, res) {
       color: white,
     });
 
-    centerRibbonText('Visit:', centerX, boxY + 45, sans, 8, ink);
-    centerRibbonText('safehaven.org/', centerX, boxY + 35, sans, 8, ink);
-    centerRibbonText('certificates/verify', centerX, boxY + 25, sans, 8, ink);
-    centerRibbonText('+ Enter ID below', centerX, boxY + 12, sans, 7, muted);
+    centerRibbonText('Visit:', boxY + 45, sans, 8, ink);
+    centerRibbonText('safehaven.org/', boxY + 35, sans, 8, ink);
+    centerRibbonText('certificates/verify', boxY + 25, sans, 8, ink);
+    centerRibbonText('+ Enter ID below', boxY + 12, sans, 7, muted);
 
     // Certificate ID below
     const idText = `ID: ${certificateId}`;
