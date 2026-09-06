@@ -3,7 +3,7 @@
 // Allows anyone to verify a certificate by its ID
 
 import { createClient } from '@supabase/supabase-js';
-import { ADVANCED_COURSES } from '../../lib/allyCourseData';
+import { ADVANCED_COURSES } from '../../../lib/allyCourseData';
 
 export default async function handler(req, res) {
   const { certificateId } = req.query;
