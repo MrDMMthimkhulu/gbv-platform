@@ -118,8 +118,16 @@ export default function ProfilePage() {
     setChangingPassword(true);
 
     try {
-      const { data: sessionData } = await supabase.auth.getSession();
-      const token = sessionData?.session?.access_token;
+      // Get current session
+      const { data, error: sessionError } = await supabase.auth.getSession();
+      
+      if (sessionError || !data?.session) {
+        setPasswordError('Your session has expired. Please log in again.');
+        setChangingPassword(false);
+        return;
+      }
+
+      const token = data.session.access_token;
 
       const response = await fetch('/api/change-password', {
         method: 'POST',
