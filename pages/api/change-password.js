@@ -8,10 +8,10 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { currentPassword, newPassword, token } = req.body;
+  const { newPassword, token } = req.body;
 
-  if (!currentPassword || !newPassword || !token) {
-    return res.status(400).json({ error: 'Missing required fields' });
+  if (!newPassword || !token) {
+    return res.status(400).json({ error: 'Missing password or token' });
   }
 
   if (newPassword.length < 6) {
@@ -19,20 +19,27 @@ export default async function handler(req, res) {
   }
 
   try {
-    const supabase = createClient(
+    // Create admin client with service role key to get user ID from token
+    const adminSupabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL,
+      process.env.SUPABASE_SERVICE_ROLE_KEY
+    );
+
+    // Get user from token
+    const userSupabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
       { global: { headers: { Authorization: `Bearer ${token}` } } }
     );
 
-    // Get user
-    const { data: userData, error: userError } = await supabase.auth.getUser(token);
-    if (userError || !userData?.user) {
+    const { data: { user }, error: userError } = await userSupabase.auth.getUser();
+    
+    if (userError || !user) {
       return res.status(401).json({ error: 'Not authenticated' });
     }
 
-    // Update password
-    const { error: updateError } = await supabase.auth.updateUser({
+    // Use admin API to update password
+    const { error: updateError } = await adminSupabase.auth.admin.updateUserById(user.id, {
       password: newPassword
     });
 
