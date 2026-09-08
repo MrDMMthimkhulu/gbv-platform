@@ -27,7 +27,6 @@ export default function JennetChat({ compact = false }) {
   const [speechSupported, setSpeechSupported] = useState(false);
   const [ageGroup, setAgeGroup] = useState(null);
   const [speakOn, setSpeakOn] = useState(false);
-  const [ttsSupported, setTtsSupported] = useState(false);
   const windowRef = useRef(null);
   const recognitionRef = useRef(null);
 
@@ -44,9 +43,7 @@ export default function JennetChat({ compact = false }) {
     return () => listener?.subscription?.unsubscribe();
   }, []);
 
-  useEffect(() => {
-    setTtsSupported(typeof window !== 'undefined' && 'speechSynthesis' in window);
-  }, []);
+  const audioRef = useRef(null);
 
   useEffect(() => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -92,16 +89,41 @@ export default function JennetChat({ compact = false }) {
     }
   };
 
-  const speak = (text) => {
-    if (!ttsSupported || !speakOn) return;
-    window.speechSynthesis.cancel(); // don't stack replies if one's already talking
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.rate = 1;
-    window.speechSynthesis.speak(utterance);
+  const speak = async (text) => {
+    if (!speakOn) return;
+
+    // Stop anything already playing so replies don't stack on top of
+    // each other if a new one arrives while the last is still talking.
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current = null;
+    }
+
+    try {
+      const res = await fetch('/api/speak', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text }),
+      });
+      if (!res.ok) return; // fail silently, the text reply is already on screen either way
+
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const audio = new Audio(url);
+      audioRef.current = audio;
+      audio.play();
+      audio.onended = () => URL.revokeObjectURL(url);
+    } catch {
+      // Speech is a nice-to-have layered on top of the text reply, never
+      // block or error out the actual conversation over it.
+    }
   };
 
   const toggleSpeak = () => {
-    if (speakOn) window.speechSynthesis.cancel();
+    if (speakOn && audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current = null;
+    }
     setSpeakOn((v) => !v);
   };
 
@@ -217,17 +239,15 @@ export default function JennetChat({ compact = false }) {
           <p className="chat-name">{JENNET_NAME}</p>
           <p className="chat-status">Online · {JENNET_TITLE}</p>
         </div>
-        {ttsSupported && (
-          <button
-            type="button"
-            className={`chat-tts-toggle ${speakOn ? 'on' : ''}`}
-            onClick={toggleSpeak}
-            aria-label={speakOn ? 'Turn off spoken replies' : 'Turn on spoken replies'}
-            title={speakOn ? 'Replies are read aloud, tap to turn off' : 'Tap to have replies read aloud'}
-          >
-            {speakOn ? '🔊' : '🔇'}
-          </button>
-        )}
+        <button
+          type="button"
+          className={`chat-tts-toggle ${speakOn ? 'on' : ''}`}
+          onClick={toggleSpeak}
+          aria-label={speakOn ? 'Turn off spoken replies' : 'Turn on spoken replies'}
+          title={speakOn ? 'Replies are read aloud, tap to turn off' : 'Tap to have replies read aloud'}
+        >
+          {speakOn ? '🔊' : '🔇'}
+        </button>
       </div>
 
       <div className="chat-window" ref={windowRef}>
