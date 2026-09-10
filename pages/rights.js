@@ -30,7 +30,6 @@ export default function RightsPage() {
         />
       </Head>
 
-      <div
       <div>
         }
       >
