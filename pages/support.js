@@ -30,8 +30,6 @@ export default function SupportPage() {
       </Head>
 
       <div>
-        }
-      >
 
       {isGirl && (
         <div className="mode-badge">
@@ -54,7 +52,10 @@ export default function SupportPage() {
           <p className="eyebrow">Talk to someone</p>
           <h1>You don&apos;t have to carry this alone</h1>
           <p className="sub">
-            All of the services below are free and confidential.
+            All of the services below are free and confidential. Calls don&apos;t
+            appear as a specific number on some phone bills — if you&apos;re
+            worried about your call history, use Quick Exit and consider
+            calling from a phone your abuser can&apos;t access.
           </p>
         </section>
       )}
@@ -135,42 +136,6 @@ export default function SupportPage() {
                 <p className="c-desc">Counselling, legal support &amp; shelter referrals</p>
               </div>
               <a href="tel:0766945911">076 694 5911</a>
-            </div>
-          </div>
-        </div>
-
-        <div className="group">
-          <h2>Guides to keep</h2>
-          <p className="guides-note">
-            Downloadable versions of this information are on their way, so
-            you can save or print them for reference even without signal.
-          </p>
-          <div className="guides-grid">
-            <div className="guide-card">
-              <span className="guide-badge">eBook</span>
-              <p className="guide-title">Building a Safety Plan</p>
-              <p className="guide-desc">
-                Covers the leaving period specifically, since danger often
-                increases right after you go: recognising escalation, a
-                code word with people you trust, where to go immediately,
-                evidence to keep for a protection order, money he
-                doesn&apos;t know about, and a plan for children and
-                devices. Includes a plan for staying safer if you&apos;re
-                not able to leave yet.
-              </p>
-              <span className="guide-status">Coming soon</span>
-            </div>
-            <div className="guide-card">
-              <span className="guide-badge">eBook</span>
-              <p className="guide-title">After the Shelter: Rebuilding</p>
-              <p className="guide-desc">
-                What comes after safety: understanding trauma responses like
-                hypervigilance or trauma bonding, rebuilding a support
-                network an abuser may have cut you off from, staying safe
-                if you share custody, and practical first steps on housing,
-                income, and finalising any protection order.
-              </p>
-              <span className="guide-status">Coming soon</span>
             </div>
           </div>
         </div>
@@ -313,63 +278,8 @@ export default function SupportPage() {
           line-height: 1.6;
         }
 
-        .guides-note {
-          font-size: 0.88rem;
-          color: var(--muted);
-          margin-bottom: 16px;
-        }
-        .guides-grid {
-          display: grid;
-          grid-template-columns: repeat(2, 1fr);
-          gap: 16px;
-        }
-        .guide-card {
-          background: var(--warm);
-          border-radius: 10px;
-          padding: 20px 18px;
-          display: flex;
-          flex-direction: column;
-        }
-        .guide-badge {
-          align-self: flex-start;
-          background: var(--rose-deep);
-          color: white;
-          font-size: 0.68rem;
-          font-weight: 800;
-          letter-spacing: 0.05em;
-          text-transform: uppercase;
-          padding: 4px 10px;
-          border-radius: 999px;
-          margin-bottom: 12px;
-        }
-        .guide-title {
-          font-size: 0.95rem;
-          font-weight: 700;
-          color: var(--ink);
-          margin-bottom: 6px;
-        }
-        .guide-desc {
-          font-size: 0.82rem;
-          color: var(--muted);
-          line-height: 1.55;
-          margin-bottom: 16px;
-          flex-grow: 1;
-        }
-        .guide-status {
-          align-self: flex-start;
-          font-size: 0.76rem;
-          font-weight: 700;
-          color: var(--rose-deep);
-          border: 1px solid var(--rose-deep);
-          padding: 5px 12px;
-          border-radius: 999px;
-        }
-
         @media (max-width: 600px) {
           .urgent {
-            grid-template-columns: 1fr;
-          }
-          .guides-grid {
             grid-template-columns: 1fr;
           }
         }
@@ -389,7 +299,7 @@ function ChildlineCard({ isGirl }) {
             <p className="c-desc">
               {isGirl
                 ? "They won't judge you, and it's totally free"
-                : '24/7, free, and confidential, for children and teens facing abuse of any kind'}
+                : '24/7, free, and confidential — for children and teens facing abuse of any kind'}
             </p>
           </div>
           <a href="tel:116">116</a>
@@ -397,8 +307,8 @@ function ChildlineCard({ isGirl }) {
       </div>
       <p className="note">
         {isGirl
-          ? "They won't force you to do anything. They'll just help you figure out your next move."
-          : "Childline will always try to help you talk to a trusted adult. You won't be forced to do anything you're not ready for."}
+          ? "They won't force you to do anything \u2014 they'll just help you figure out your next move."
+          : "Childline will always try to help you talk to a trusted adult — you won't be forced to do anything you're not ready for."}
       </p>
 
       <style jsx>{`
