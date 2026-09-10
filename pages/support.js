@@ -30,18 +30,7 @@ export default function SupportPage() {
       </Head>
 
       <div
-        style={
-          isGirl
-            ? {
-                '--rose': '#f97316',
-                '--rose-deep': '#c2410c',
-                '--blush': '#ffedd5',
-                '--teal': '#eab308',
-                '--teal-light': '#fef9c3',
-                '--warm': '#fed7aa',
-                '--ink': '#7c2d12',
-              }
-            : undefined
+      <div>
         }
       >
 
