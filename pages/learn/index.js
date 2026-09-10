@@ -160,6 +160,28 @@ export default function LearnPage() {
         />
       </Head>
 
+      <div
+        style={
+          isGirl
+            ? {
+                '--rose': '#f97316',
+                '--rose-deep': '#c2410c',
+                '--blush': '#ffedd5',
+                '--teal': '#eab308',
+                '--teal-light': '#fef9c3',
+                '--warm': '#fed7aa',
+                '--ink': '#7c2d12',
+              }
+            : undefined
+        }
+      >
+
+      {isGirl && (
+        <div className="mode-badge">
+          <span>A space made just for you</span>
+        </div>
+      )}
+
       <section className="header-band">
         <p className="greeting">
           {user ? `${greetingForNow()}, ${displayName}` : 'Learning Hub'}
@@ -361,8 +383,29 @@ export default function LearnPage() {
           </div>
         </div>
       </section>
+      </div>
 
       <style jsx>{`
+        .mode-badge {
+          background: var(--rose);
+          color: white;
+          padding: 8px 20px;
+          border-radius: 20px;
+          display: inline-block;
+          font-size: 0.75rem;
+          font-weight: 800;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+          text-align: center;
+          margin: 0 auto 30px;
+          display: block;
+          width: fit-content;
+          margin-left: auto;
+          margin-right: auto;
+        }
+        .mode-badge span {
+          display: block;
+        }
         .filter-section {
           max-width: 1000px;
           margin: 0 auto;
