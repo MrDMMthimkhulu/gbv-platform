@@ -5,7 +5,7 @@ import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 import Layout from '../../components/Layout';
 import MythFactGame from '../../components/MythFactGame';
 import { supabase } from '../../lib/supabaseClient';
-import { COURSES, UNDER18_COURSES } from '../../lib/courseData';
+import { COURSES } from '../../lib/courseData';
 import { ADVANCED_COURSES } from '../../lib/allyCourseData';
 
 const COURSE_ICONS = {
@@ -13,9 +13,6 @@ const COURSE_ICONS = {
   'healthy-relationships': '💛',
   consent: '🤝',
   'online-safety': '🔒',
-  'culture-and-gender-norms': '🌍',
-  'understanding-gbv-young-people': '🛡️',
-  'healthy-adolescent-relationships': '💌',
 };
 
 function greetingForNow() {
@@ -87,18 +84,6 @@ export default function LearnPage() {
       overviewHref: `/learn/${c.id}`,
       advanced: false,
     })),
-    ...(isGirl
-      ? UNDER18_COURSES.map((c) => ({
-          id: c.id,
-          title: c.title,
-          tagline: c.tagline,
-          icon: COURSE_ICONS[c.id] || '📘',
-          total: c.lessons.length,
-          firstLessonId: c.lessons[0]?.id,
-          overviewHref: `/learn/${c.id}`,
-          advanced: false,
-        }))
-      : []),
     ...(!isGirl
       ? ADVANCED_COURSES.map((c) => ({
           id: c.id,
@@ -157,12 +142,6 @@ export default function LearnPage() {
           </p>
         )}
       </section>
-
-      {isGirl && (
-        <div className="mode-badge">
-          <span>A space made just for you</span>
-        </div>
-      )}
 
       <section className="dashboard">
         <div className="main-col">
@@ -286,26 +265,6 @@ export default function LearnPage() {
       </section>
 
       <style jsx>{`
-        .mode-badge {
-          background: var(--rose);
-          color: white;
-          padding: 8px 20px;
-          border-radius: 20px;
-          display: inline-block;
-          font-size: 0.75rem;
-          font-weight: 800;
-          text-transform: uppercase;
-          letter-spacing: 0.05em;
-          text-align: center;
-          margin: 20px auto;
-          display: block;
-          width: fit-content;
-          margin-left: auto;
-          margin-right: auto;
-        }
-        .mode-badge span {
-          display: block;
-        }
         .header-band {
           max-width: 1000px;
           margin: 0 auto;
