@@ -47,21 +47,8 @@ export default function Home() {
         />
       </Head>
 
-      <div
-        style={
-          isGirl
-            ? {
-                '--rose': '#f97316',
-                '--rose-deep': '#c2410c',
-                '--blush': '#ffedd5',
-                '--teal': '#eab308',
-                '--teal-light': '#fef9c3',
-                '--warm': '#fed7aa',
-                '--ink': '#7c2d12',
-              }
-            : undefined
-        }
-      >
+      
+      <div>
 
       {isGirl && (
         <div className="mode-badge">
@@ -638,7 +625,8 @@ function DataDashboard() {
               <div className="bar-row" key={p.name}>
                 <span className="bar-label">{p.name}</span>
                 <div className="bar-track">
-                  <div
+                  
+      <div
                     className="bar-fill"
                     style={{ width: `${(p.sexualOffences.cases / max) * 100}%` }}
                   />
@@ -662,7 +650,8 @@ function DataDashboard() {
               <div className="bar-row" key={p.name}>
                 <span className="bar-label">{p.name}</span>
                 <div className="bar-track">
-                  <div
+                  
+      <div
                     className={`bar-fill ${change > 0 ? 'rising' : 'falling'}`}
                     style={{ width: `${width}%` }}
                   />
