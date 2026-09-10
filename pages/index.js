@@ -51,13 +51,13 @@ export default function Home() {
         style={
           isGirl
             ? {
-                '--rose': '#f97316',
-                '--rose-deep': '#c2410c',
-                '--blush': '#ffedd5',
-                '--teal': '#eab308',
-                '--teal-light': '#fef9c3',
-                '--warm': '#fed7aa',
-                '--ink': '#7c2d12',
+                '--rose': '#7c3aed',
+                '--rose-deep': '#6b21a8',
+                '--blush': '#f3e8ff',
+                '--teal': '#a78bfa',
+                '--teal-light': '#ede9fe',
+                '--warm': '#e9d5ff',
+                '--ink': '#3f0f5c',
               }
             : undefined
         }
