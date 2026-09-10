@@ -30,7 +30,6 @@ export default function AboutAbusePage() {
         />
       </Head>
 
-      <div
       <div>
         }
       >
