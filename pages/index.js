@@ -95,7 +95,7 @@ export default function Home() {
           <p className="stat-label">{t('stat_provinces')}</p>
         </div>
         <div className="stat">
-          <p className="stat-num">5</p>
+          <p className="stat-num">11</p>
           <p className="stat-label">{t('stat_languages')}</p>
         </div>
         <div className="stat">
