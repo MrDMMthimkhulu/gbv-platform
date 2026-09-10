@@ -31,8 +31,6 @@ export default function AboutAbusePage() {
       </Head>
 
       <div>
-        }
-      >
 
       {isGirl && (
         <div className="mode-badge">
