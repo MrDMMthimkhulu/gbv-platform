@@ -29,7 +29,6 @@ export default function SupportPage() {
         />
       </Head>
 
-      <div
       <div>
         }
       >
