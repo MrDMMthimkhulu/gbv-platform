@@ -131,7 +131,7 @@ export default function AboutAbusePage() {
         <section className="cta">
           <h2>Telling someone isn&apos;t snitching</h2>
           <p>
-            A parent, teacher, coach, Childline &mdash; anyone you trust.
+            A parent, teacher, coach, Childline - anyone you trust.
             You don&apos;t need the perfect words. Just start talking.
           </p>
           <div className="cta-actions">
