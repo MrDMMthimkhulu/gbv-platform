@@ -47,7 +47,6 @@ export default function Home() {
         />
       </Head>
 
-      
       <div>
 
       {isGirl && (
@@ -625,8 +624,7 @@ function DataDashboard() {
               <div className="bar-row" key={p.name}>
                 <span className="bar-label">{p.name}</span>
                 <div className="bar-track">
-                  
-      <div
+                  <div
                     className="bar-fill"
                     style={{ width: `${(p.sexualOffences.cases / max) * 100}%` }}
                   />
@@ -650,8 +648,7 @@ function DataDashboard() {
               <div className="bar-row" key={p.name}>
                 <span className="bar-label">{p.name}</span>
                 <div className="bar-track">
-                  
-      <div
+                  <div
                     className={`bar-fill ${change > 0 ? 'rising' : 'falling'}`}
                     style={{ width: `${width}%` }}
                   />
