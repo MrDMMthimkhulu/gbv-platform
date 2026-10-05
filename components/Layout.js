@@ -356,7 +356,7 @@ export default function Layout({ children }) {
         }
 
         footer {
-          background: var(--ink);
+          background: #000000;
           padding: 60px 6% 24px;
         }
         .footer-top {
@@ -369,12 +369,12 @@ export default function Layout({ children }) {
         .footer-logo {
           font-size: 1.2rem;
           font-weight: 800;
-          color: white;
+          color: #ffffff;
           margin-bottom: 10px;
         }
         .footer-tagline {
           font-size: 0.88rem;
-          color: var(--sand);
+          color: #ffffff;
           line-height: 1.6;
           max-width: 300px;
         }
@@ -383,12 +383,12 @@ export default function Layout({ children }) {
           font-weight: 700;
           text-transform: uppercase;
           letter-spacing: 0.05em;
-          color: var(--rose);
+          color: #ffffff;
           margin-bottom: 14px;
         }
         .footer-col :global(a) {
           display: block;
-          color: var(--sand);
+          color: #ffffff;
           text-decoration: none;
           font-size: 0.88rem;
           margin-bottom: 10px;
@@ -396,17 +396,17 @@ export default function Layout({ children }) {
         .footer-bottom {
           max-width: 1000px;
           margin: 0 auto;
-          border-top: 1px solid #33283c;
+          border-top: 1px solid #333333;
           padding-top: 20px;
           display: flex;
           justify-content: space-between;
           flex-wrap: wrap;
           gap: 12px;
           font-size: 0.8rem;
-          color: var(--sand);
+          color: #ffffff;
         }
         .footer-emergency {
-          color: var(--rose);
+          color: #ffffff;
           font-weight: 700;
         }
 
