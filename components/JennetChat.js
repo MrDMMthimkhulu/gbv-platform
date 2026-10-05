@@ -140,7 +140,7 @@ export default function JennetChat({ compact = false }) {
         setLocating(false);
         setMessages((prev) => [
           ...prev,
-          { role: 'assistant', content: '📍 Got it, I can see your location now, ask me about shelters or facilities near you whenever you like.' },
+          { role: 'assistant', content: '📍 Got it, I can see your location now, ask me about shelters or facilities near you, or about the area around you in general, whenever you like.' },
         ]);
       },
       () => {
@@ -295,7 +295,7 @@ export default function JennetChat({ compact = false }) {
       {!location && (
         <div className="location-row">
           <button className="location-btn" onClick={shareLocation} disabled={locating}>
-            {locating ? 'Locating…' : '📍 Share my location for nearby shelters'}
+            {locating ? 'Locating…' : '📍 Share my location for nearby shelters & safety info'}
           </button>
           {locationError && <p className="location-error">{locationError}</p>}
         </div>
