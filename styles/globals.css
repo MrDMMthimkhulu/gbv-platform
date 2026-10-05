@@ -30,3 +30,22 @@ body {
   background: var(--cream);
   color: var(--ink);
 }
+
+/* ---------------------------------------------------------------
+   Under-18 ("girl") theme: warm orange, yellow and terracotta.
+   Every page already reads these variables, so overriding them
+   here recolours the whole site. Applied by pages/_app.js via
+   <html data-theme="girl">.
+   --------------------------------------------------------------- */
+:root[data-theme="girl"] {
+  --ink: #2b1a12;
+  --plum: #6b2f1a;        /* deep terracotta brown (replaces plum) */
+  --rose: #c0560b;        /* warm orange, primary (replaces rose) */
+  --rose-deep: #a8442a;   /* terracotta (replaces wine) */
+  --blush: #fde8c4;       /* soft yellow tint (replaces blush) */
+  --cream: #fffaf0;
+  --warm: #fdf1e1;
+  --sand: #ecd9c0;
+  --muted: #7d6a5c;
+  --sun: #f5b82e;         /* yellow accent for new elements */
+}
