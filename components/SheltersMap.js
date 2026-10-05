@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useRef } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, Circle, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import { supabase } from '../lib/supabaseClient';
@@ -114,11 +114,18 @@ function haversineKm(lat1, lon1, lat2, lon2) {
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
-function RecenterOnLocate({ position }) {
+// Recenters once when a position first arrives (or when a new tracking
+// session starts, via hasCentered being reset to false), then leaves the
+// map alone on every subsequent live update, so continuous tracking
+// doesn't yank the view out from under someone who's panning around.
+function RecenterOnLocate({ position, hasCentered, onCentered }) {
   const map = useMap();
   useEffect(() => {
-    if (position) map.setView([position.lat, position.lng], 11);
-  }, [position]);
+    if (position && !hasCentered) {
+      map.setView([position.lat, position.lng], 13);
+      onCentered();
+    }
+  }, [position, hasCentered]);
   return null;
 }
 
@@ -148,6 +155,9 @@ export default function SheltersMap() {
   const [userPos, setUserPos] = useState(null);
   const [locating, setLocating] = useState(false);
   const [locateError, setLocateError] = useState('');
+  const [tracking, setTracking] = useState(false);
+  const [hasCentered, setHasCentered] = useState(false);
+  const watchIdRef = useRef(null);
   const [mapView, setMapView] = useState('street'); // 'street' | 'satellite'
 
   useEffect(() => {
@@ -181,24 +191,48 @@ export default function SheltersMap() {
     return list;
   }, [shelters, province, userPos, filters]);
 
-  const findNearMe = () => {
+  const startTracking = () => {
     if (!navigator.geolocation) {
       setLocateError('Location services are not available on this device.');
       return;
     }
     setLocating(true);
     setLocateError('');
-    navigator.geolocation.getCurrentPosition(
+    setHasCentered(false);
+    watchIdRef.current = navigator.geolocation.watchPosition(
       (pos) => {
         setUserPos({ lat: pos.coords.latitude, lng: pos.coords.longitude });
         setLocating(false);
+        setTracking(true);
       },
       () => {
         setLocateError('Could not get your location. You can still browse by province.');
         setLocating(false);
-      }
+        setTracking(false);
+      },
+      { enableHighAccuracy: true, maximumAge: 5000, timeout: 15000 }
     );
   };
+
+  const stopTracking = () => {
+    if (watchIdRef.current !== null) {
+      navigator.geolocation.clearWatch(watchIdRef.current);
+      watchIdRef.current = null;
+    }
+    setTracking(false);
+    setLocating(false);
+  };
+
+  // Stop watching GPS the moment this component unmounts (e.g. navigating
+  // away from /map), rather than leaving a live location watch running
+  // in the background, which matters on a safety-focused site.
+  useEffect(() => {
+    return () => {
+      if (watchIdRef.current !== null) {
+        navigator.geolocation.clearWatch(watchIdRef.current);
+      }
+    };
+  }, []);
 
   const toggleFilter = (key) => {
     setFilters((f) => ({ ...f, [key]: !f[key] }));
@@ -219,8 +253,16 @@ export default function SheltersMap() {
           ))}
         </select>
 
-        <button className="locate-btn" onClick={findNearMe} disabled={locating}>
-          {locating ? 'Locating…' : 'Find shelters near me'}
+        <button
+          className={`locate-btn${tracking ? ' tracking' : ''}`}
+          onClick={tracking ? stopTracking : startTracking}
+          disabled={locating && !tracking}
+        >
+          {locating && !tracking
+            ? 'Locating…'
+            : tracking
+            ? '🟢 Live tracking on — tap to stop'
+            : '📍 Track my live location'}
         </button>
 
         <button
@@ -283,9 +325,13 @@ export default function SheltersMap() {
           {userPos && (
             <>
               <Marker position={[userPos.lat, userPos.lng]} icon={meIcon}>
-                <Popup>You are here</Popup>
+                <Popup>{tracking ? 'You are here (updating live)' : 'You are here'}</Popup>
               </Marker>
-              <RecenterOnLocate position={userPos} />
+              <RecenterOnLocate
+                position={userPos}
+                hasCentered={hasCentered}
+                onCentered={() => setHasCentered(true)}
+              />
             </>
           )}
 
@@ -415,6 +461,14 @@ export default function SheltersMap() {
         .locate-btn:disabled {
           opacity: 0.6;
           cursor: not-allowed;
+        }
+        .locate-btn.tracking {
+          background: #0e6e65;
+          animation: locate-pulse 2s ease-in-out infinite;
+        }
+        @keyframes locate-pulse {
+          0%, 100% { box-shadow: 0 0 0 0 rgba(14, 110, 101, 0.45); }
+          50% { box-shadow: 0 0 0 6px rgba(14, 110, 101, 0); }
         }
         .view-toggle-btn {
           background: white;
