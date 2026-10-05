@@ -18,7 +18,7 @@ const HotspotDataMap = dynamic(() => import('../components/HotspotDataMap'), {
   loading: () => <p className="map-loading">Loading map…</p>,
 });
 
-const CASE_TYPE_COLORS = ['#8e1046', '#c2185b', '#0f6e63', '#4a2545', '#eab308'];
+const CASE_TYPE_COLORS = ['var(--rose-deep)', 'var(--rose)', '#0f6e63', 'var(--plum)', '#eab308'];
 
 export default function InsightsPage() {
   const [data, setData] = useState(null);
