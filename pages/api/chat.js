@@ -65,6 +65,40 @@ async function findNearestShelters(location, count = 3) {
     .slice(0, count);
 }
 
+// Hotspots live in their own table (see components/SheltersMap.js), not
+// in shelters, so a shared location previously only ever surfaced
+// shelters/TCCs/FCS units to Jennet and never known hotspot areas.
+// Only surface a hotspot if it's genuinely close, since the whole point
+// is "near where you are right now", not the closest one nationwide.
+const HOTSPOT_RADIUS_KM = 15;
+
+async function findNearestHotspots(location, count = 3) {
+  if (!location || typeof location.lat !== 'number' || typeof location.lng !== 'number') {
+    return [];
+  }
+
+  const client = getSupabase();
+  if (!client) return [];
+
+  const { data, error } = await client
+    .from('hotspots')
+    .select('station, province, tooltip, latitude, longitude');
+
+  if (error) {
+    console.error('Supabase hotspots lookup error:', error);
+    return [];
+  }
+
+  return (data || [])
+    .map((h) => ({
+      ...h,
+      distanceKm: haversineKm(location.lat, location.lng, h.latitude, h.longitude),
+    }))
+    .filter((h) => h.distanceKm <= HOTSPOT_RADIUS_KM)
+    .sort((a, b) => a.distanceKm - b.distanceKm)
+    .slice(0, count);
+}
+
 // Best-effort in-memory rate limit, same pattern as /api/send-alert. This
 // endpoint is public and unauthenticated (Jennet works for logged-out
 // visitors too), so we limit by IP rather than by user. Resets on a cold
@@ -153,7 +187,7 @@ What SafeHaven actually is, so you can speak about it accurately instead of vagu
 - You, Jennet, available site-wide to talk through anything GBV-related.
 - A Quick Exit button on every page for leaving the site instantly.
 - An emergency alert feature (in a user's profile, once logged in) that can send a trusted contact your location.
-- A location-sharing option right here in this chat: if someone asks for the nearest shelter or facility and hasn't shared their location yet, tell them they can tap the location button in the chat to share it, then you'll be given their real nearest verified facilities to mention.
+- A location-sharing option right here in this chat: if someone asks about the nearest shelter, facility, or what their surroundings look like safety-wise, and hasn't shared their location yet, tell them they can tap the location button in the chat to share it. Once they do, you'll be given their real nearest verified facilities and any nearby SAPS-designated GBV hotspot areas, the same data shown on /map, so you can talk about either, or both, not just facilities.
 - The site works in multiple languages and adapts its tone depending on whether someone identifies as under 18 or 18+.
 When someone asks what the site does or where to find something, answer from this actual knowledge, specifically and confidently, don't hedge with "I don't have access to..." when you do know the answer.
 
@@ -243,7 +277,7 @@ async function retrieveContext(queryEmbedding, matchCount = 5) {
 // material is only attached when something relevant was actually found,
 // so a casual "hi" doesn't get a reference block bolted onto it, and it's
 // framed as optional, Jennet decides whether it's worth mentioning.
-function toOpenAIMessages(messages, chunks, nearbyShelters, systemPrompt) {
+function toOpenAIMessages(messages, chunks, nearbyShelters, nearbyHotspots, systemPrompt) {
   const converted = messages.map((m) => ({
     role: m.role === 'assistant' ? 'assistant' : 'user',
     content: m.content,
@@ -268,6 +302,16 @@ function toOpenAIMessages(messages, chunks, nearbyShelters, systemPrompt) {
         )
         .join('\n');
       addendum += `\n\n(The user has shared their location. These are the real nearest verified facilities to them, closest first, pulled live from SafeHaven's own database, not a guess:\n${shelterBlock}\nOnly bring these up if it's relevant to what they're actually asking, e.g. if they're looking for a shelter or facility. Don't force them into an unrelated reply.)`;
+    }
+
+    if (nearbyHotspots.length > 0) {
+      const hotspotBlock = nearbyHotspots
+        .map(
+          (h, i) =>
+            `[${i + 1}] ${h.station} (${h.province}), about ${h.distanceKm.toFixed(1)} km away. ${h.tooltip || ''}`
+        )
+        .join('\n');
+      addendum += `\n\n(The user has shared their location. These are real SAPS-designated GBV hotspot areas near them, closest first, pulled live from SafeHaven's own map data, the same ones shown on /map:\n${hotspotBlock}\nThese describe a general zone, not an exact spot, so talk about them that way (e.g. "the area around X has been flagged as a hotspot") rather than implying a precise location. Only bring this up if it fits what they're actually asking or if being aware of it would genuinely help them stay safer, e.g. general safety awareness about their surroundings, not just when they ask for a shelter specifically. Never cause alarm for its own sake, and don't force it into an unrelated reply.)`;
     }
 
     converted[lastIndex].content = `${converted[lastIndex].content}${addendum}`;
@@ -299,6 +343,7 @@ export default async function handler(req, res) {
     const queryEmbedding = lastUserMessage ? await embedQuery(lastUserMessage.content) : null;
     const chunks = await retrieveContext(queryEmbedding);
     const nearbyShelters = await findNearestShelters(location);
+    const nearbyHotspots = await findNearestHotspots(location);
     const systemPrompt = systemPromptFor(ageGroup);
 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -309,7 +354,7 @@ export default async function handler(req, res) {
       },
       body: JSON.stringify({
         model: CHAT_MODEL,
-        messages: toOpenAIMessages(messages, chunks, nearbyShelters, systemPrompt),
+        messages: toOpenAIMessages(messages, chunks, nearbyShelters, nearbyHotspots, systemPrompt),
         max_completion_tokens: 500,
         temperature: 0.6,
       }),
