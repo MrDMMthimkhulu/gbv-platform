@@ -5,31 +5,62 @@ import { useEffect } from 'react';
 // a search engine which can look like a hurried cover story.
 const EXIT_URL = 'https://weather.com';
 
-// Browsers give JavaScript no API to delete existing history entries or
-// address-bar autocomplete — that's a browser-level privacy control, only
-// changeable by the person themselves (their browser's "clear history"
-// screen), never by a page. What a page CAN do is stop new back-button
-// presses from ever landing on this site again: push several extra history
-// entries that all point at the exit destination before we leave, so the
-// back button just replays the same harmless page instead of returning
-// here. Pairs well with reminding survivors, outside the app, to also
-// clear their browser history/autocomplete by hand if a device is shared.
-const HISTORY_OVERWRITE_STEPS = 6;
+// IMPORTANT LIMIT: browsers give JavaScript no way to delete the browser's
+// own history (the history list, address-bar suggestions) or to empty the
+// back-button list. Only the person can do that, from their browser's
+// "clear browsing data" screen. Pages also cannot push history entries for
+// a different website, so the exit uses location.replace, which swaps this
+// page out of the current history entry instead of adding to it.
+//
+// What a page CAN clear is its own data on the device. On exit we remove
+// this site's saved login session, cookies, stored settings and cached
+// files, so the next person to pick up the phone is not signed in to the
+// profile (which holds the trusted contact and saved details).
+const CLEAR_SITE_DATA = true;
 
-function performExit() {
+function clearSiteData() {
   try {
-    for (let i = 0; i < HISTORY_OVERWRITE_STEPS; i++) {
-      window.history.pushState(null, '', EXIT_URL);
+    localStorage.clear(); // includes the Supabase login session
+  } catch {}
+  try {
+    sessionStorage.clear();
+  } catch {}
+  try {
+    document.cookie.split(';').forEach((c) => {
+      const name = c.split('=')[0].trim();
+      if (name) {
+        document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/`;
+      }
+    });
+  } catch {}
+  try {
+    if (window.caches) {
+      caches.keys().then((keys) => keys.forEach((k) => caches.delete(k)));
     }
+  } catch {}
+}
+
+// On a phone with weak data, weather.com can take several seconds to load,
+// and until then the sensitive page would still be on screen. So we blank
+// the screen and rename the tab straight away, then navigate.
+function performExit() {
+  if (CLEAR_SITE_DATA) clearSiteData();
+  try {
+    const cover = document.createElement('div');
+    cover.style.cssText =
+      'position:fixed;top:0;left:0;right:0;bottom:0;background:#ffffff;z-index:2147483647;';
+    document.body.appendChild(cover);
+    document.title = 'Weather';
   } catch {
-    // If pushState is blocked for any reason, fall back to just navigating.
+    // If anything above fails, still navigate away.
   }
   window.location.replace(EXIT_URL);
 }
 
 export default function QuickExitButton({ label = 'Quick Exit' }) {
-  // Esc is bound site-wide so leaving doesn't depend on finding and
-  // accurately clicking a small fixed button while under stress.
+  // Esc works on laptops and keyboards. Phones have no Esc key, so on
+  // mobile the on-screen button is the way out (made large enough to hit
+  // quickly with a thumb, see the styles below).
   useEffect(() => {
     const onKeyDown = (e) => {
       if (e.key === 'Escape') performExit();
@@ -60,17 +91,22 @@ export default function QuickExitButton({ label = 'Quick Exit' }) {
           cursor: pointer;
           border-radius: 4px;
           box-shadow: 0 4px 20px rgba(196, 30, 58, 0.4);
+          touch-action: manipulation;
+          -webkit-tap-highlight-color: transparent;
         }
         button:hover {
           background: #9c1530;
         }
         @media (max-width: 860px) {
           button {
-            top: 10px;
-            right: 10px;
-            padding: 7px 12px;
-            font-size: 0.65rem;
+            top: calc(10px + env(safe-area-inset-top, 0px));
+            right: calc(10px + env(safe-area-inset-right, 0px));
+            min-height: 44px;
+            min-width: 64px;
+            padding: 0 12px;
+            font-size: 0.7rem;
             letter-spacing: 0.05em;
+            border-radius: 8px;
           }
         }
       `}</style>
