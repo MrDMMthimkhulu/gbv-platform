@@ -40,11 +40,24 @@ function clearSiteData() {
   } catch {}
 }
 
+// BACK-BUTTON PROTECTION: we cannot empty the back list, but we can make
+// sure pressing Back never shows this site. On exit we leave a flag in this
+// tab (sessionStorage), and pages/_document.js checks it on every page load
+// or restore that comes from the Back/Forward buttons: if the flag is there,
+// the page immediately replaces itself with EXIT_URL again. Each bounce also
+// replaces that history entry, so the site's entries disappear one by one.
+// Typing the address or following a normal link clears the flag, so using
+// the site again later works normally.
+const EXIT_FLAG = 'sh-exited';
+
 // On a phone with weak data, weather.com can take several seconds to load,
 // and until then the sensitive page would still be on screen. So we blank
 // the screen and rename the tab straight away, then navigate.
 function performExit() {
   if (CLEAR_SITE_DATA) clearSiteData();
+  try {
+    sessionStorage.setItem(EXIT_FLAG, '1');
+  } catch {}
   try {
     const cover = document.createElement('div');
     cover.style.cssText =
@@ -98,14 +111,23 @@ export default function QuickExitButton({ label = 'Quick Exit' }) {
           background: #9c1530;
         }
         @media (max-width: 860px) {
+          /* Fixed width so the button never grows over the menu icon,
+             whatever language the label is in. The nav reserves the same
+             space (see components/Layout.js). */
           button {
             top: calc(10px + env(safe-area-inset-top, 0px));
             right: calc(10px + env(safe-area-inset-right, 0px));
+            width: 88px;
             min-height: 44px;
-            min-width: 64px;
-            padding: 0 12px;
-            font-size: 0.7rem;
-            letter-spacing: 0.05em;
+            max-height: 54px;
+            padding: 4px;
+            font-size: 0.62rem;
+            line-height: 1.1;
+            letter-spacing: 0;
+            text-transform: none;
+            white-space: normal;
+            overflow-wrap: anywhere;
+            overflow: hidden;
             border-radius: 8px;
           }
         }
