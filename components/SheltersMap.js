@@ -353,11 +353,24 @@ export default function SheltersMap() {
                 {s.services?.length > 0 && (
                   <span className="popup-services">{s.services.join(', ')}</span>
                 )}
-                {s.phone && (
-                  <>
-                    <br />
-                    <a href={`tel:${s.phone.replace(/\D/g, '')}`}>{s.phone}</a>
-                  </>
+                {s.phone || s.email ? (
+                  <div className="popup-contact">
+                    {s.phone && (
+                      <a className="popup-btn" href={`tel:${s.phone.replace(/[^\d+]/g, '')}`}>
+                        Call {s.phone}
+                      </a>
+                    )}
+                    {s.email && (
+                      <a className="popup-btn popup-btn-alt" href={`mailto:${s.email}`}>
+                        Email {s.email}
+                      </a>
+                    )}
+                  </div>
+                ) : (
+                  <div className="popup-nocontact">
+                    No contact details listed yet. You can call the GBV Command Centre free,
+                    24/7, on <a href="tel:0800428428">0800 428 428</a>.
+                  </div>
                 )}
               </Popup>
             </Marker>
@@ -589,6 +602,37 @@ export default function SheltersMap() {
         }
         .popup-services {
           font-size: 0.82rem;
+          color: var(--muted);
+        }
+        .popup-contact {
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
+          margin-top: 8px;
+        }
+        .popup-btn {
+          display: block;
+          min-height: 40px;
+          line-height: 40px;
+          padding: 0 12px;
+          background: var(--rose-deep);
+          color: #ffffff !important;
+          border-radius: 6px;
+          font-weight: 700;
+          font-size: 0.85rem;
+          text-align: center;
+          text-decoration: none;
+          overflow-wrap: anywhere;
+        }
+        .popup-btn-alt {
+          background: #ffffff;
+          color: var(--rose-deep) !important;
+          border: 1.5px solid var(--rose-deep);
+          line-height: 37px;
+        }
+        .popup-nocontact {
+          margin-top: 8px;
+          font-size: 0.8rem;
           color: var(--muted);
         }
         .popup-type {
