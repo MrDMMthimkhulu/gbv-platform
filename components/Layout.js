@@ -288,7 +288,7 @@ export default function Layout({ children }) {
         @media (max-width: 860px) {
           nav {
             padding: 0 4%;
-            padding-right: 90px;
+            padding-right: calc(108px + env(safe-area-inset-right, 0px));
           }
           .menu-toggle {
             display: flex;
