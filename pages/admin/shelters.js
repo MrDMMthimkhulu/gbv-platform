@@ -12,6 +12,7 @@ const EMPTY_SHELTER = {
   district: '',
   address: '',
   phone: '',
+  email: '',
   services: '',
   latitude: '',
   longitude: '',
@@ -109,6 +110,7 @@ export default function AdminSheltersPage() {
       district: shelterForm.district || null,
       address: shelterForm.address,
       phone: shelterForm.phone || null,
+      email: shelterForm.email || null,
       services: shelterForm.services
         ? shelterForm.services.split(',').map((s) => s.trim()).filter(Boolean)
         : null,
@@ -140,6 +142,7 @@ export default function AdminSheltersPage() {
   const editShelter = (s) => {
     setShelterForm({
       ...s,
+      email: s.email || '',
       facility_type: s.facility_type || 'shelter',
       services: (s.services || []).join(', '),
     });
@@ -340,6 +343,14 @@ export default function AdminSheltersPage() {
                   <input
                     value={shelterForm.phone}
                     onChange={(e) => setShelterForm({ ...shelterForm, phone: e.target.value })}
+                  />
+                </label>
+                <label>
+                  Email
+                  <input
+                    type="email"
+                    value={shelterForm.email}
+                    onChange={(e) => setShelterForm({ ...shelterForm, email: e.target.value })}
                   />
                 </label>
               </div>
