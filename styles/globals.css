@@ -49,3 +49,27 @@ body {
   --muted: #7d6a5c;
   --sun: #f5b82e;         /* yellow accent for new elements */
 }
+
+/* ---------------------------------------------------------------
+   Google Translate: hide Google's own banner and highlight boxes.
+   The site's own language picker (components/GoogleTranslate.js)
+   replaces them.
+   --------------------------------------------------------------- */
+.goog-te-banner-frame,
+iframe.skiptranslate,
+.goog-te-balloon-frame,
+#goog-gt-tt,
+.goog-tooltip {
+  display: none !important;
+}
+body {
+  top: 0 !important;
+}
+.goog-text-highlight {
+  background: none !important;
+  box-shadow: none !important;
+}
+font {
+  background: transparent !important;
+  box-shadow: none !important;
+}
