@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { useTranslation } from 'next-i18next';
 import QuickExitButton from './QuickExitButton';
+import GoogleTranslate from './GoogleTranslate';
 import { supabase } from '../lib/supabaseClient';
 
 export default function Layout({ children }) {
@@ -38,11 +39,6 @@ export default function Layout({ children }) {
     return () => router.events.off('routeChangeStart', closeMenu);
   }, [router.events]);
 
-  const changeLanguage = (e) => {
-    const locale = e.target.value;
-    router.push(router.pathname, router.asPath, { locale });
-  };
-
   const handleLogout = async () => {
     await supabase.auth.signOut();
     router.push('/');
@@ -50,10 +46,12 @@ export default function Layout({ children }) {
 
   return (
     <>
-      <QuickExitButton label={t('quick_exit')} />
+      <div className="notranslate" translate="no">
+        <QuickExitButton label={t('quick_exit')} />
+      </div>
 
       <nav>
-        <Link href="/" className="logo">SafeHaven</Link>
+        <Link href="/" className="logo notranslate" translate="no">SafeHaven</Link>
 
         <button
           className="menu-toggle"
@@ -106,24 +104,7 @@ export default function Layout({ children }) {
           )}
 
           <li>
-            <select
-              aria-label="Choose language"
-              className="lang-select"
-              value={router.locale}
-              onChange={changeLanguage}
-            >
-              <option value="en">English</option>
-              <option value="af">Afrikaans</option>
-              <option value="nr">isiNdebele</option>
-              <option value="xh">isiXhosa</option>
-              <option value="zu">isiZulu</option>
-              <option value="nso">Sepedi</option>
-              <option value="st">Sesotho</option>
-              <option value="tn">Setswana</option>
-              <option value="ss">siSwati</option>
-              <option value="ve">Tshivenda</option>
-              <option value="ts">Xitsonga</option>
-            </select>
+            <GoogleTranslate />
           </li>
         </ul>
       </nav>
@@ -133,7 +114,7 @@ export default function Layout({ children }) {
       <footer>
         <div className="footer-top">
           <div className="footer-brand">
-            <p className="footer-logo">SafeHaven</p>
+            <p className="footer-logo notranslate" translate="no">SafeHaven</p>
             <p className="footer-tagline">{t('footer_tagline')}</p>
           </div>
           <div className="footer-col">
@@ -153,7 +134,7 @@ export default function Layout({ children }) {
         </div>
         <div className="footer-bottom">
           <span>{t('footer_bottom')}</span>
-          <span className="footer-emergency">GBV Command Centre: 0800 428 428</span>
+          <span className="footer-emergency notranslate" translate="no">GBV Command Centre: 0800 428 428</span>
         </div>
       </footer>
 
@@ -233,7 +214,7 @@ export default function Layout({ children }) {
           width: 100%;
           text-align: left;
         }
-        .lang-select {
+        nav :global(.lang-select) {
           background: var(--blush);
           border: none;
           padding: 6px 10px;
@@ -326,7 +307,7 @@ export default function Layout({ children }) {
             width: auto;
           }
           .auth-btn,
-          .lang-select {
+          nav :global(.lang-select) {
             width: 100%;
             margin: 6px 0;
             text-align: left;
